@@ -11,7 +11,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn default_config() -> Result<Self> {
+    pub fn default_config() -> Result<Self, String> {
         let mut temp = Self {
             store_path: get_store_path()?,
             adds: HashSet::new(),
@@ -19,7 +19,7 @@ impl Config {
         temp.adds.insert(get_full_config_path()?);
         Ok(temp)
     }
-    pub fn save(&self) -> Result<()> {
+    pub fn save(&self) -> Result<(), String> {
         if let Ok(json) = serde_json::to_string_pretty(&self) {
             if let Ok(mut file) = fs::File::create(get_full_config_file_path()?) {
                 file.write_all(json.as_bytes())
@@ -33,21 +33,26 @@ impl Config {
     }
 }
 
-pub fn load_config() {
-    if let Ok(json) = fs::read_to_string(get_full_config_file_path()?) {
-        if let Ok(config) = serde_json::from_str(&json) {
-            return Ok(config);
+pub fn load_config() -> Result<Config, String> {
+    if !get_full_config_file_path()?.is_file() {
+        match fs::create_dir_all(get_full_config_path()?) {
+            Ok(_) => {}
+            Err(e) => return Err(format!("{:?}", e)),
         }
+        let config = Config::default_config()?;
+        config.save()?;
+        return Ok(config);
     }
-    Ok(create_config()?)
-}
+    let json = match fs::read_to_string(get_full_config_file_path()?) {
+        Ok(o) => o,
+        Err(e) => return Err(format!("{:?}", e)),
+    };
 
-pub fn create_config() {
-    if let Some(dir) = get_full_config_file_path()?.parent() {
-        utils::create_dir(&dir.to_path_buf())?;
-    }
-    Config::default_config()?.save()?;
-    Config::default_config()
+    let config = match serde_json::from_str(&json) {
+        Ok(o) => o,
+        Err(e) => return Err(format!("{:?}", e)),
+    };
+    Ok(config)
 }
 
 /// /home/$USER/.store
@@ -67,11 +72,4 @@ pub fn get_full_config_path() -> Result<PathBuf, String> {
 /// /home/$USER/.config/bloi/config.json
 pub fn get_full_config_file_path() -> Result<PathBuf, String> {
     Ok(get_full_config_path()?.join("config.json"))
-}
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn check_path_building() {}
 }

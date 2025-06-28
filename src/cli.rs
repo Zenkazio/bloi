@@ -30,6 +30,17 @@ pub fn build_cli() -> Command {
                 ),
         )
         .subcommand(
+            Command::new("ch")
+                .about("change store dir default /home/$USER/.store")
+                .arg(
+                    Arg::new("path")
+                        .help("path to store dir")
+                        .required(true)
+                        .value_name("PATH")
+                        .index(1),
+                ),
+        )
+        .subcommand(
             Command::new("list")
                 .about("lists stored files/dir"),
         )
