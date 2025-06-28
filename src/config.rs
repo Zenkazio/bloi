@@ -4,6 +4,8 @@ use std::{fs, io::Write, path::PathBuf};
 use dirs::{config_dir, home_dir};
 use serde::{Deserialize, Serialize};
 
+use crate::mv;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub store_path: PathBuf,
@@ -46,15 +48,9 @@ pub fn load_config() -> Result<Config, String> {
         config.save()?;
         return Ok(config);
     }
-    let json = match fs::read_to_string(get_full_config_file_path()?) {
-        Ok(o) => o,
-        Err(e) => return Err(format!("{:?}", e)),
-    };
+    let json = mv!(fs::read_to_string(get_full_config_file_path()?));
 
-    let config = match serde_json::from_str(&json) {
-        Ok(o) => o,
-        Err(e) => return Err(format!("{:?}", e)),
-    };
+    let config = mv!(serde_json::from_str(&json));
     Ok(config)
 }
 

@@ -5,7 +5,7 @@ use std::{env, fs};
 
 use crate::cli::*;
 use crate::config::Config;
-use crate::utils::store_routine;
+use crate::utils::{UserChoice, store_routine};
 mod cli;
 mod config;
 mod utils;
@@ -53,11 +53,12 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
-fn store_dir_help() {}
+//fn store_dir_help() {}
 
 fn store(config: &Config) -> Result<(), String> {
     for target_path in &config.adds {
-        match store_routine(target_path, config) {
+        let mut user_choice = UserChoice::NoChoice;
+        match store_routine(target_path, config, &mut user_choice) {
             Ok(_) => {}
             Err(e) => {
                 println!("{}", e)
@@ -67,7 +68,7 @@ fn store(config: &Config) -> Result<(), String> {
     Ok(())
 }
 
-fn unstore(config: &Config) -> Result<(), String> {
-    for _path in &config.adds {}
-    Ok(())
-}
+// fn unstore(config: &Config) -> Result<(), String> {
+//     for _path in &config.adds {}
+//     Ok(())
+// }
