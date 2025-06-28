@@ -1,27 +1,23 @@
-use crate::error::Error;
-use crate::prelude::*;
+use std::collections::HashSet;
+use std::{fs, io::Write, path::PathBuf};
 
-use std::{
-    env::{self},
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
-
+use dirs::{config_dir, home_dir};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub store_dir: PathBuf,
-    pub adds: Vec<PathBuf>,
+    pub store_path: PathBuf,
+    pub adds: HashSet<PathBuf>,
 }
 
 impl Config {
     pub fn default_config() -> Result<Self> {
-        Ok(Self {
-            store_dir: get_dotfiles_path()?,
-            adds: vec![get_full_config_path()?],
-        })
+        let mut temp = Self {
+            store_path: get_store_path()?,
+            adds: HashSet::new(),
+        };
+        temp.adds.insert(get_full_config_path()?);
+        Ok(temp)
     }
     pub fn save(&self) -> Result<()> {
         if let Ok(json) = serde_json::to_string_pretty(&self) {
@@ -37,43 +33,45 @@ impl Config {
     }
 }
 
-pub fn load_config() -> Result<Config> {
-    if let Ok(full_path) = get_full_config_file_path() {
-        if let Ok(json) = fs::read_to_string(full_path) {
-            if let Ok(config) = serde_json::from_str(&json) {
-                return Ok(config);
-            }
+pub fn load_config() {
+    if let Ok(json) = fs::read_to_string(get_full_config_file_path()?) {
+        if let Ok(config) = serde_json::from_str(&json) {
+            return Ok(config);
         }
     }
-    Ok(create_config(&get_full_config_file_path()?)?)
+    Ok(create_config()?)
 }
 
-pub fn create_config(path: &Path) -> Result<Config> {
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir).expect("could not create dirs");
+pub fn create_config() {
+    if let Some(dir) = get_full_config_file_path()?.parent() {
+        utils::create_dir(&dir.to_path_buf())?;
     }
-    Config::default_config()
-        .expect("something went wrong while")
-        .save();
+    Config::default_config()?.save()?;
     Config::default_config()
 }
 
-pub fn get_home_path() -> Result<PathBuf> {
-    if let Ok(home) = env::var("HOME") {
-        return Ok(PathBuf::from(home));
+/// /home/$USER/.store
+pub fn get_default_store_path() -> Result<PathBuf, String> {
+    if let Some(home_dir) = home_dir() {
+        return Ok(home_dir.join(".store"));
     }
-    //this would be better XDG_CONFIG_DIR ect.
-    Err(Error::Generic("$HOME was not found".to_string()))
+    Err("home dir was not found".to_string())
 }
-pub fn get_dotfiles_path() -> Result<PathBuf> {
-    Ok(get_home_path()?.join(".dotfiles"))
+/// /home/$USER/.config/bloi
+pub fn get_full_config_path() -> Result<PathBuf, String> {
+    if let Some(config_dir) = config_dir() {
+        return Ok(config_dir.join("bloi"));
+    }
+    Err("config dir was not found".to_string())
 }
-pub fn get_config_path() -> Result<PathBuf> {
-    Ok(get_home_path()?.join(".config"))
-}
-pub fn get_full_config_path() -> Result<PathBuf> {
-    Ok(get_config_path()?.join("bloi"))
-}
-pub fn get_full_config_file_path() -> Result<PathBuf> {
+/// /home/$USER/.config/bloi/config.json
+pub fn get_full_config_file_path() -> Result<PathBuf, String> {
     Ok(get_full_config_path()?.join("config.json"))
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn check_path_building() {}
 }

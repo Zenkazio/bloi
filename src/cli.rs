@@ -8,15 +8,30 @@ pub fn build_cli() -> Command {
         .after_help("Tip: Use `bloi help <command>` for more details on a specific subcommand.")
         .subcommand(
             Command::new("add")
-                .about("Adds file or directory to store")
+                .about("Adds file or directory to the store")
                 .arg(
                     Arg::new("path")
-                        .help("The file or directory path to be added (absolute path)")
+                        .help("The file or directory path to be added to the store (absolute path stored)")
                         .required(true)
                         .value_parser(validate_path)
                         .value_name("PATH")
                         .index(1),
                 ),
+        )
+        .subcommand(
+            Command::new("rm")
+                .about("remove file or directory from storeing process")
+                .arg(
+                    Arg::new("path")
+                        .help("The file or directory path to be removed from the store (absolute path stored)")
+                        .required(true)
+                        .value_name("PATH")
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            Command::new("list")
+                .about("lists stored files/dir"),
         )
         .subcommand(
             Command::new("store")

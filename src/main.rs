@@ -1,40 +1,38 @@
-#![allow(unused)]
+//#![allow(unused)]
 
-use clap::Parser;
+use std::env;
+use std::path::PathBuf;
 
 use crate::cli::*;
-use crate::prelude::*;
 mod cli;
 mod config;
-mod error;
-mod prelude;
 mod utils;
 
-fn main() -> Result<()> {
-    let mut config = config::load_config()?;
+fn main() {
+    let config = config::load_config();
 
-    utils::check_store_dir(&config.store_dir);
+    //utils::create_dir(&config.store_path)?;
 
     let matches = build_cli().get_matches();
     match matches.subcommand() {
         Some(("add", sub_m)) => {
+            let current_dir: PathBuf = env::current_dir().expect("Failed to get current directory");
             let path = sub_m.get_one::<std::path::PathBuf>("path").unwrap().clone();
-            config.adds.push(path);
-            config.save();
+            config.adds.insert(current_dir.join(path));
+            config.save()?;
         }
         Some(("store", _)) => {
             for path in &config.adds {
-                match utils::process_path_based_on_type(path, &config.store_dir) {
+                match utils::decide_state_and_proccess_path(&path, &config.store_path, None) {
                     Ok(_) => {}
-                    Err(e) => {
-                        dbg!(e);
-                    }
+                    Err(e) => match e {
+                        Error::Generic(s) => {
+                            println!("{}", s);
+                        }
+                    },
                 };
             }
         }
         _ => {}
     }
-    dbg!(config);
-
-    Ok(())
 }
