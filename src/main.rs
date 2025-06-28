@@ -32,8 +32,9 @@ fn main() -> Result<(), String> {
             let current_dir = mv!(env::current_dir());
             config.adds.insert(current_dir.join(path));
             config.save()?;
+            println!("{:?}", config.adds);
         }
-        Some(("rm", sub_m)) => {
+        Some(("remove", sub_m)) => {
             let path = match sub_m.get_one::<PathBuf>("path") {
                 Some(s) => s,
                 None => {
@@ -43,9 +44,13 @@ fn main() -> Result<(), String> {
             let current_dir = mv!(env::current_dir());
             config.adds.remove(&current_dir.join(path));
             config.save()?;
+            println!("{:?}", config.adds);
+        }
+        Some(("change-store-dir", _)) => {
+            todo!("do it in the config.json until then");
         }
         Some(("list", _)) => {
-            println!("{:?}", config.adds)
+            println!("{:?}", config.adds);
         }
         Some(("store", _)) => store(&config)?,
         _ => {}

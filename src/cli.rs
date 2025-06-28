@@ -19,23 +19,25 @@ pub fn build_cli() -> Command {
                 ),
         )
         .subcommand(
-            Command::new("rm")
+            Command::new("remove")
                 .about("remove file or directory from storeing process")
                 .arg(
                     Arg::new("path")
                         .help("The file or directory path to be removed from the store (absolute path stored)")
                         .required(true)
+                        .value_parser(validate_path_no_exist)
                         .value_name("PATH")
                         .index(1),
                 ),
         )
         .subcommand(
-            Command::new("ch")
+            Command::new("change-store-dir")
                 .about("change store dir default /home/$USER/.store")
                 .arg(
                     Arg::new("path")
                         .help("path to store dir")
                         .required(true)
+                        .value_parser(validate_path_no_exist)
                         .value_name("PATH")
                         .index(1),
                 ),
@@ -57,4 +59,8 @@ fn validate_path(s: &str) -> Result<PathBuf, String> {
     } else {
         Err(String::from("path doesn't exist"))
     }
+}
+
+fn validate_path_no_exist(s: &str) -> Result<PathBuf, String> {
+    Ok(PathBuf::from(s))
 }
