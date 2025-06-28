@@ -13,23 +13,26 @@ pub struct Config {
 impl Config {
     pub fn default_config() -> Result<Self, String> {
         let mut temp = Self {
-            store_path: get_store_path()?,
+            store_path: get_default_store_path()?,
             adds: HashSet::new(),
         };
         temp.adds.insert(get_full_config_path()?);
         Ok(temp)
     }
     pub fn save(&self) -> Result<(), String> {
-        if let Ok(json) = serde_json::to_string_pretty(&self) {
-            if let Ok(mut file) = fs::File::create(get_full_config_file_path()?) {
-                file.write_all(json.as_bytes())
-                    .expect("file could not be written :(");
-                return Ok(());
-            }
+        let json = match serde_json::to_string_pretty(&self) {
+            Ok(o) => o,
+            Err(e) => return Err(format!("{:?}", e)),
+        };
+        let mut file = match fs::File::create(get_full_config_file_path()?) {
+            Ok(o) => o,
+            Err(e) => return Err(e.to_string()),
+        };
+        match file.write_all(json.as_bytes()) {
+            Ok(_) => {}
+            Err(e) => return Err(e.to_string()),
         }
-        Err(Error::Generic(
-            "Something happend while parsing the config".to_string(),
-        ))
+        Ok(())
     }
 }
 

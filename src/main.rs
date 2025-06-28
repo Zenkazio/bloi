@@ -1,48 +1,73 @@
 //#![allow(unused)]
 
-use std::env;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use crate::cli::*;
+use crate::config::Config;
+use crate::utils::store_routine;
 mod cli;
 mod config;
 mod utils;
 
 fn main() -> Result<(), String> {
-    let config = config::load_config()?;
+    let mut config = config::load_config()?;
 
     //utils::create_dir(&config.store_path)?;
-    let current_dir: PathBuf = env::current_dir().expect("Failed to get current directory");
-    let matches = build_cli().get_matches();
-    match matches.subcommand() {
+    if !config.store_path.exists() {
+        match fs::create_dir_all(&config.store_path) {
+            Ok(_) => {}
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+
+    match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
-            let path = sub_m.get_one::<std::path::PathBuf>("path").unwrap().clone();
+            let path = match sub_m.get_one::<PathBuf>("path") {
+                Some(s) => s,
+                None => {
+                    return Err(format!("could not parse path to PathBuf lol\n{:?}", sub_m));
+                }
+            };
+            let current_dir = mv!(env::current_dir());
             config.adds.insert(current_dir.join(path));
             config.save()?;
         }
         Some(("rm", sub_m)) => {
-            let path = sub_m.get_one::<std::path::PathBuf>("path").unwrap().clone();
+            let path = match sub_m.get_one::<PathBuf>("path") {
+                Some(s) => s,
+                None => {
+                    return Err(format!("could not parse path to PathBuf lol\n{:?}", sub_m));
+                }
+            };
+            let current_dir = mv!(env::current_dir());
             config.adds.remove(&current_dir.join(path));
             config.save()?;
         }
         Some(("list", _)) => {
-            let path = sub_m.get_one::<std::path::PathBuf>("path").unwrap().clone();
-            config.adds.remove(&current_dir.join(path));
-            config.save()?;
+            println!("{:?}", config.adds)
         }
-        Some(("store", _)) => {
-            for path in &config.adds {
-                match utils::decide_state_and_proccess_path(&path, &config.store_path, None) {
-                    Ok(_) => {}
-                    Err(e) => match e {
-                        Error::Generic(s) => {
-                            println!("{}", s);
-                        }
-                    },
-                };
-            }
-        }
+        Some(("store", _)) => store(&config)?,
         _ => {}
     }
-    Err("halllo".to_string())
+    Ok(())
+}
+
+fn store_dir_help() {}
+
+fn store(config: &Config) -> Result<(), String> {
+    for target_path in &config.adds {
+        match store_routine(target_path, config) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}", e)
+            }
+        }
+    }
+    Ok(())
+}
+
+fn unstore(config: &Config) -> Result<(), String> {
+    for _path in &config.adds {}
+    Ok(())
 }
