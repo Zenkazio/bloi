@@ -72,7 +72,6 @@ fn store(config: &Config) -> Result<(), String> {
             }
         }
     }
-    git_add_all(&config.store_path);
     Ok(())
 }
 
