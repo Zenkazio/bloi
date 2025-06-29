@@ -10,15 +10,17 @@ fn run_git_command(args: &[&str], path: &PathBuf) -> std::io::Result<Output> {
 }
 
 pub fn git_add_all(path: &PathBuf) -> std::io::Result<Output> {
+    println!("Perform \"git add .\" in {:?}", path);
     run_git_command(&["add", "."], path)
 }
 pub fn git_commit_with_date(path: &PathBuf) -> std::io::Result<Output> {
     let date = Command::new("date").output()?;
     let msg = String::from_utf8_lossy(&date.stdout).trim().to_string();
-
+    println!("Perform \"git commit\" in {:?}", path);
     run_git_command(&["commit", "-m", &msg], path)
 }
 pub fn git_fetch(path: &PathBuf) -> std::io::Result<Output> {
+    println!("Perform \"git fetch\" in {:?}", path);
     run_git_command(&["fetch"], path)
 }
 
@@ -32,6 +34,7 @@ fn get_changed_files(args: &[&str], path: &PathBuf) -> std::io::Result<HashSet<S
 }
 
 pub fn detect_potential_conflict(path: &PathBuf) -> Result<(), String> {
+    println!("Perform git conflict detection");
     let local_changes = mv!(get_changed_files(&["diff", "--name-only", "HEAD"], path));
     let remote_changes = mv!(get_changed_files(
         &["diff", "--name-only", "HEAD", "origin/main"],
@@ -51,9 +54,11 @@ pub fn detect_potential_conflict(path: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 pub fn git_push(path: &PathBuf) -> std::io::Result<Output> {
+    println!("Perform \"git push\" in {:?}", path);
     run_git_command(&["push"], path)
 }
 pub fn git_pull(path: &PathBuf) -> std::io::Result<Output> {
+    println!("Perform \"git pull\" in {:?}", path);
     run_git_command(&["pull"], path)
 }
 
