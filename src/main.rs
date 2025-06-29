@@ -5,9 +5,11 @@ use std::{env, fs};
 
 use crate::cli::*;
 use crate::config::Config;
+use crate::git::git_add_all;
 use crate::utils::{UserChoice, store_routine};
 mod cli;
 mod config;
+mod git;
 mod utils;
 
 fn main() -> Result<(), String> {
@@ -70,6 +72,7 @@ fn store(config: &Config) -> Result<(), String> {
             }
         }
     }
+    git_add_all(&config.store_path);
     Ok(())
 }
 

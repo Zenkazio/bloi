@@ -112,10 +112,10 @@ pub fn store_routine(
                     //dbg!(mv!(&entry).path());
                     store_routine(&mv!(entry).path(), config, user_choice)?;
                 }
-                println!(
-                    "this path (dir - dir) is not fully developed mabye you have to delete something yourself"
-                );
-                println!("{:?}", target_path);
+                // println!(
+                //     "this path (dir - dir) is not fully developed mabye you have to delete something yourself"
+                // );
+                // println!("{:?}", target_path);
             } //this is already good I guess ~later~ I was wrong...
             (PathState::NoExist, PathState::Dir) => {
                 copy_dir_all(&path_to_store, target_path)?; //dangerous
