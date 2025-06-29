@@ -15,7 +15,11 @@ pub fn git_add_all(path: &PathBuf) -> std::io::Result<Output> {
 }
 pub fn git_commit_with_date(path: &PathBuf) -> std::io::Result<Output> {
     let date = Command::new("date").output()?;
-    let msg = String::from_utf8_lossy(&date.stdout).trim().to_string();
+    let date_as_string = String::from_utf8_lossy(&date.stdout).trim().to_string();
+    let mut msg = String::from("Auto commit made by \"bloi\"");
+    msg.push_str("\n");
+    msg.push_str(&date_as_string);
+
     println!("Perform \"git commit\" in {:?}", path);
     run_git_command(&["commit", "-m", &msg], path)
 }
@@ -62,18 +66,37 @@ pub fn git_pull(path: &PathBuf) -> std::io::Result<Output> {
     run_git_command(&["pull"], path)
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::{path::PathBuf, process::Command};
+#[cfg(test)]
+mod tests {
+    use std::{path::PathBuf, process::Command};
 
-//     use crate::git::{git_add_all, git_commit_with_date};
+    use crate::{
+        git::{
+            detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull,
+            git_push,
+        },
+        mv,
+    };
 
-//     #[test]
-//     fn test_commands() {
-//         dbg!(Command::new("echo").arg("hallo").status().unwrap());
+    #[test]
+    fn test_commands() {
+        dbg!(Command::new("echo").arg("hallo").status().unwrap());
 
-//         // let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
-//         // git_add_all(&base);
-//         // git_commit_with_date(&base);
-//     }
-// }
+        // let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
+        // git_add_all(&base);
+        // git_commit_with_date(&base);
+    }
+    #[test]
+    fn test_git_commands_working() {
+        //this is manily used just to automate git with this project...
+        let path = &PathBuf::from("/home/zenkazio/Projects/bloi/");
+
+        git_add_all(path).unwrap();
+        git_commit_with_date(path).unwrap();
+        git_fetch(path).unwrap();
+        detect_potential_conflict(path).unwrap();
+        git_pull(path).unwrap();
+        git_commit_with_date(path).unwrap();
+        git_push(path).unwrap();
+    }
+}
