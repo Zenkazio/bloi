@@ -70,12 +70,8 @@ pub fn git_pull(path: &PathBuf) -> std::io::Result<Output> {
 mod tests {
     use std::{path::PathBuf, process::Command};
 
-    use crate::{
-        git::{
-            detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull,
-            git_push,
-        },
-        mv,
+    use crate::git::{
+        detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull, git_push,
     };
 
     #[test]
