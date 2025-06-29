@@ -1,24 +1,22 @@
 use std::collections::HashSet;
 use std::{fs, io::Write, path::PathBuf};
 
-use dirs::{config_dir, home_dir};
+use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 
 use crate::mv;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub store_path: PathBuf,
     pub adds: HashSet<PathBuf>,
 }
 
 impl Config {
     pub fn default_config() -> Result<Self, String> {
-        let mut temp = Self {
-            store_path: get_default_store_path()?,
+        let temp = Self {
             adds: HashSet::new(),
         };
-        temp.adds.insert(get_full_config_path()?);
+        //temp.adds.insert(get_full_config_path()?);
         Ok(temp)
     }
     pub fn save(&self) -> Result<(), String> {
@@ -40,10 +38,7 @@ impl Config {
 
 pub fn load_config() -> Result<Config, String> {
     if !get_full_config_file_path()?.is_file() {
-        match fs::create_dir_all(get_full_config_path()?) {
-            Ok(_) => {}
-            Err(e) => return Err(format!("{:?}", e)),
-        }
+        mv!(fs::create_dir_all(get_default_store_path()?));
         let config = Config::default_config()?;
         config.save()?;
         return Ok(config);
@@ -61,14 +56,7 @@ pub fn get_default_store_path() -> Result<PathBuf, String> {
     }
     Err("home dir was not found".to_string())
 }
-/// /home/$USER/.config/bloi
-pub fn get_full_config_path() -> Result<PathBuf, String> {
-    if let Some(config_dir) = config_dir() {
-        return Ok(config_dir.join("bloi"));
-    }
-    Err("config dir was not found".to_string())
-}
-/// /home/$USER/.config/bloi/config.json
+/// /home/$USER/.store/config.json
 pub fn get_full_config_file_path() -> Result<PathBuf, String> {
-    Ok(get_full_config_path()?.join("config.json"))
+    Ok(get_default_store_path()?.join("config.json"))
 }

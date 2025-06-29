@@ -1,11 +1,13 @@
 //#![allow(unused)]
 
+use std::env;
 use std::path::PathBuf;
-use std::{env, fs};
 
 use crate::cli::*;
-use crate::config::Config;
-use crate::git::git_add_all;
+use crate::config::{Config, get_default_store_path};
+use crate::git::{
+    detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull, git_push,
+};
 use crate::utils::{UserChoice, store_routine};
 mod cli;
 mod config;
@@ -13,15 +15,15 @@ mod git;
 mod utils;
 
 fn main() -> Result<(), String> {
-    let mut config = config::load_config()?;
+    config::load_config()?;
 
-    //utils::create_dir(&config.store_path)?;
-    if !config.store_path.exists() {
-        match fs::create_dir_all(&config.store_path) {
-            Ok(_) => {}
-            Err(e) => return Err(e.to_string()),
-        }
-    }
+    mv!(git_add_all(&get_default_store_path()?));
+    mv!(git_commit_with_date(&get_default_store_path()?));
+    mv!(git_fetch(&get_default_store_path()?));
+    detect_potential_conflict(&get_default_store_path()?)?;
+    mv!(git_pull(&get_default_store_path()?));
+
+    let mut config = config::load_config()?;
 
     match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
@@ -72,6 +74,9 @@ fn store(config: &Config) -> Result<(), String> {
             }
         }
     }
+    mv!(git_add_all(&get_default_store_path()?));
+    mv!(git_commit_with_date(&get_default_store_path()?));
+    mv!(git_push(&get_default_store_path()?));
     Ok(())
 }
 

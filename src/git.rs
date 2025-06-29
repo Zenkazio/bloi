@@ -50,6 +50,12 @@ pub fn detect_potential_conflict(path: &PathBuf) -> Result<(), String> {
     }
     Ok(())
 }
+pub fn git_push(path: &PathBuf) -> std::io::Result<Output> {
+    run_git_command(&["push"], path)
+}
+pub fn git_pull(path: &PathBuf) -> std::io::Result<Output> {
+    run_git_command(&["pull"], path)
+}
 
 // #[cfg(test)]
 // mod tests {

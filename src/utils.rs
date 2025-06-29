@@ -1,6 +1,6 @@
 use std::{fs, io::stdin, os::unix::fs::symlink, path::PathBuf};
 
-use crate::config::Config;
+use crate::config::{Config, get_default_store_path};
 
 #[macro_export]
 macro_rules! mv {
@@ -26,7 +26,7 @@ pub fn store_routine(
     config: &Config,
     user_choice: &mut UserChoice,
 ) -> Result<(), String> {
-    let path_to_store: PathBuf = config.store_path.join(absolute_to_relative(target_path));
+    let path_to_store: PathBuf = get_default_store_path()?.join(absolute_to_relative(target_path));
     let mut target_state = classify_path(target_path);
     let mut store_state = classify_path(&path_to_store);
     // dbg!(target_path);
