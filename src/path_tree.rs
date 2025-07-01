@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn create_path_tree() -> Result<(), io::Error> {
-        let path_file = PathBuf::from("/home/zenkazio/Projects/bloi/src/path_three.rs");
+        let path_file = PathBuf::from("/home/zenkazio/Projects/bloi/src/path_tree.rs");
         let path_dir = PathBuf::from("/home/zenkazio/Projects/bloi/");
         let path_symlink = PathBuf::from("/home/zenkazio/.config/niri/config.kdl");
         let path_noexist = PathBuf::from("/home/zenkazio/Projects/bloi/src/schlobo");
