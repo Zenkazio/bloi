@@ -12,17 +12,10 @@ use crate::utils::{UserChoice, store_routine};
 mod cli;
 mod config;
 mod git;
+mod path_tree;
 mod utils;
 
 fn main() -> Result<(), String> {
-    config::load_config()?;
-
-    mv!(git_add_all(&get_default_store_path()?));
-    mv!(git_commit_with_date(&get_default_store_path()?));
-    mv!(git_fetch(&get_default_store_path()?));
-    detect_potential_conflict(&get_default_store_path()?)?;
-    mv!(git_pull(&get_default_store_path()?));
-
     let mut config = config::load_config()?;
 
     match build_cli().get_matches().subcommand() {
@@ -58,13 +51,16 @@ fn main() -> Result<(), String> {
         Some(("list", _)) => {
             list_adds(&config);
         }
-        Some(("store", _)) => store(&config)?,
+        Some(("store", _)) => {
+            pre_store()?;
+            config = config::load_config()?;
+            store(&config)?;
+            post_store()?;
+        }
         _ => {}
     }
     Ok(())
 }
-
-//fn store_dir_help() {}
 
 fn store(config: &Config) -> Result<(), String> {
     for target_path in &config.adds {
@@ -76,9 +72,6 @@ fn store(config: &Config) -> Result<(), String> {
             }
         }
     }
-    mv!(git_add_all(&get_default_store_path()?));
-    mv!(git_commit_with_date(&get_default_store_path()?));
-    mv!(git_push(&get_default_store_path()?));
     Ok(())
 }
 
@@ -88,7 +81,19 @@ fn list_adds(config: &Config) {
     }
     println!();
 }
-// fn unstore(config: &Config) -> Result<(), String> {
-//     for _path in &config.adds {}
-//     Ok(())
-// }
+
+fn pre_store() -> Result<(), String> {
+    mv!(git_add_all(&get_default_store_path()?));
+    mv!(git_commit_with_date(&get_default_store_path()?));
+    mv!(git_fetch(&get_default_store_path()?));
+    detect_potential_conflict(&get_default_store_path()?)?;
+    mv!(git_pull(&get_default_store_path()?));
+    Ok(())
+}
+
+fn post_store() -> Result<(), String> {
+    mv!(git_add_all(&get_default_store_path()?));
+    mv!(git_commit_with_date(&get_default_store_path()?));
+    mv!(git_push(&get_default_store_path()?));
+    Ok(())
+}
