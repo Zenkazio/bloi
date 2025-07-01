@@ -94,5 +94,7 @@ mod tests {
         git_pull(path).unwrap();
         git_commit_with_date(path).unwrap();
         git_push(path).unwrap();
+
+        Command::new("cargo").args(&["build", "--release"]);
     }
 }
