@@ -72,7 +72,7 @@ mod tests {
         let path_tree_dir = PathTree::new(path_dir)?;
         let path_tree_symlink = PathTree::new(path_symlink)?;
         let path_tree_noexist = PathTree::new(path_noexist)?;
-
+        dbg!(&path_tree_dir);
         assert_eq!(PathType::File, path_tree_file.path_type);
         assert_eq!(PathType::Dir, path_tree_dir.path_type);
         assert_eq!(PathType::SymLink, path_tree_symlink.path_type);
