@@ -65,7 +65,7 @@ fn main() -> Result<(), String> {
 fn store(config: &Config) -> Result<(), String> {
     for target_path in &config.adds {
         let mut user_choice = UserChoice::NoChoice;
-        match store_routine(target_path, config, &mut user_choice) {
+        match store_routine(target_path, &mut user_choice) {
             Ok(_) => {}
             Err(e) => {
                 println!("{}", e)

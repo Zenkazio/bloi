@@ -21,14 +21,15 @@ enum PathState {
     Dir,
 }
 
-pub fn store_routine(
-    target_path: &PathBuf,
-    config: &Config,
-    user_choice: &mut UserChoice,
-) -> Result<(), String> {
-    let path_to_store: PathBuf = get_default_store_path()?.join(absolute_to_relative(target_path));
+pub fn store_routine(target_path: &PathBuf, user_choice: &mut UserChoice) -> Result<(), String> {
+    let store_path: PathBuf = get_default_store_path()?.join(absolute_to_relative(target_path));
+
+    dbg!(target_path);
+    dbg!(store_path);
+
+    return Ok(());
     let mut target_state = classify_path(target_path);
-    let mut store_state = classify_path(&path_to_store);
+    let mut store_state = classify_path(&store_path);
     // dbg!(target_path);
     // dbg!(&path_to_store);
     loop {
@@ -36,7 +37,7 @@ pub fn store_routine(
             (_, PathState::Symlink) => {
                 return Err(format!(
                     "serious problem symlink in store doesn't make sense\n{:?}",
-                    path_to_store
+                    store_path
                 ));
             }
             (PathState::Symlink, PathState::File) => {} //nothing to do here this is the wanted state for storing
@@ -62,7 +63,7 @@ pub fn store_routine(
                         continue;
                     }
                     UserChoice::TakeTarget | UserChoice::TakeTargetAll => {
-                        mv!(fs::remove_file(&path_to_store));
+                        mv!(fs::remove_file(&store_path));
                         target_state = PathState::File;
                         store_state = PathState::NoExist;
                         continue;
@@ -75,9 +76,9 @@ pub fn store_routine(
                 //return Err(format!("conflict both are files\n{:?}", target_path));
             } //conflict which user needs to resolve
             (PathState::File, PathState::NoExist) => {
-                mv!(fs::create_dir_all(path_to_store.parent().unwrap()));
-                mv!(fs::rename(target_path, &path_to_store));
-                mv!(symlink(&path_to_store, target_path));
+                mv!(fs::create_dir_all(store_path.parent().unwrap()));
+                mv!(fs::rename(target_path, &store_path));
+                mv!(symlink(&store_path, target_path));
             } // this is the case for storing
             (PathState::NoExist, PathState::NoExist) => {
                 return Err(format!(
@@ -86,14 +87,14 @@ pub fn store_routine(
                 ));
             }
             (PathState::Dir, PathState::NoExist) => {
-                mv!(fs::create_dir_all(&path_to_store));
+                mv!(fs::create_dir_all(&store_path));
                 for entry in mv!(fs::read_dir(target_path)) {
-                    store_routine(&mv!(entry).path(), config, user_choice)?;
+                    store_routine(&mv!(entry).path(), user_choice)?;
                 }
             }
             (PathState::NoExist, PathState::File) => {
                 mv!(fs::create_dir_all(target_path.parent().unwrap()));
-                mv!(symlink(&path_to_store, target_path));
+                mv!(symlink(&store_path, target_path));
             } // this is the case if no target exists just create symlink
             (PathState::Dir, PathState::File) => {
                 return Err(format!(
@@ -110,7 +111,7 @@ pub fn store_routine(
             (PathState::Dir, PathState::Dir) => {
                 for entry in mv!(fs::read_dir(target_path)) {
                     //dbg!(mv!(&entry).path());
-                    store_routine(&mv!(entry).path(), config, user_choice)?;
+                    store_routine(&mv!(entry).path(), user_choice)?;
                 }
                 // println!(
                 //     "this path (dir - dir) is not fully developed mabye you have to delete something yourself"
@@ -118,9 +119,9 @@ pub fn store_routine(
                 // println!("{:?}", target_path);
             } //this is already good I guess ~later~ I was wrong...
             (PathState::NoExist, PathState::Dir) => {
-                copy_dir_all(&path_to_store, target_path)?; //dangerous
-                delete_all(&path_to_store)?; //really dangerous
-                store_routine(target_path, config, user_choice)?;
+                copy_dir_all(&store_path, target_path)?; //dangerous
+                delete_all(&store_path)?; //really dangerous
+                store_routine(target_path, user_choice)?;
                 //this is stupidly dangerous in case I wrote the copy wrong somewhere
             }
         }
@@ -201,4 +202,10 @@ fn get_user_choice(user_choice: &mut UserChoice) -> Result<(), String> {
         }
     }
     Ok(())
+}
+#[cfg(test)]
+#[test]
+fn test_store_routine() {
+    let path = PathBuf::from("/home/zenkazio/.config/eww/");
+    store_routine(&path, &mut UserChoice::NoChoice);
 }
