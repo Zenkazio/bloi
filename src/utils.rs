@@ -1,6 +1,9 @@
 use std::{fs, io::stdin, os::unix::fs::symlink, path::PathBuf};
 
-use crate::config::{Config, get_default_store_path};
+use crate::{
+    config::{Config, get_default_store_path},
+    path_tree::PathTreeEqualizer,
+};
 
 #[macro_export]
 macro_rules! mv {
@@ -31,6 +34,9 @@ pub fn store_routine(
     let mut store_state = classify_path(&path_to_store);
     // dbg!(target_path);
     // dbg!(&path_to_store);
+    let path_tree_eq =
+        PathTreeEqualizer::from_paths(path_to_store.clone(), target_path.clone(), true);
+
     loop {
         match (target_state, store_state) {
             (_, PathState::Symlink) => {
