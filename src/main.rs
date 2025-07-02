@@ -1,12 +1,13 @@
 #![allow(unused)]
 
-use crate::error::*;
 use std::env;
 use std::path::PathBuf;
 
 use crate::cli::*;
 use crate::config::{Config, get_default_store_path};
+use crate::error::*;
 use crate::git::*;
+use bloi::store_routine;
 
 mod cli;
 mod config;
@@ -14,17 +15,17 @@ mod error;
 mod git;
 
 fn main() -> Result<()> {
-    let mut config = config::load_config().unwrap();
+    let mut config = config::load_config()?;
 
     match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
             let path = match sub_m.get_one::<PathBuf>("path") {
                 Some(s) => s,
                 None => {
-                    return Err(format!("could not parse path to PathBuf lol\n{:?}", sub_m));
+                    return Err(Error::UnconventionalClapArgMissing);
                 }
             };
-            let current_dir = mv!(env::current_dir());
+            let current_dir = env::current_dir().map_err(Error::Io)?;
             config.adds.insert(current_dir.join(path));
             config.save()?;
             println!("added {:?}", path);
@@ -34,10 +35,10 @@ fn main() -> Result<()> {
             let path = match sub_m.get_one::<PathBuf>("path") {
                 Some(s) => s,
                 None => {
-                    return Err(format!("could not parse path to PathBuf lol\n{:?}", sub_m));
+                    return Err(Error::UnconventionalClapArgMissing);
                 }
             };
-            let current_dir = mv!(env::current_dir());
+            let current_dir = env::current_dir().map_err(Error::Io)?;
             config.adds.remove(&current_dir.join(path));
             config.save()?;
             println!("removed {:?}", path);
@@ -60,15 +61,9 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn store(config: &Config) -> Result<(), String> {
+fn store(config: &Config) -> Result<()> {
     for target_path in &config.adds {
-        let mut user_choice = UserChoice::NoChoice;
-        match store_routine(target_path, &mut user_choice) {
-            Ok(_) => {}
-            Err(e) => {
-                println!("{}", e)
-            }
-        }
+        store_routine(target_path, &get_default_store_path()?);
     }
     Ok(())
 }
@@ -80,18 +75,15 @@ fn list_adds(config: &Config) {
     println!();
 }
 
-fn pre_store() -> Result<(), String> {
-    mv!(git_add_all(&get_default_store_path()?));
-    mv!(git_commit_with_date(&get_default_store_path()?));
-    mv!(git_fetch(&get_default_store_path()?));
+fn pre_store() -> Result<()> {
     git_detect_potential_conflict(&get_default_store_path()?)?;
-    mv!(git_pull(&get_default_store_path()?));
+    git_pull(&get_default_store_path()?)?;
     Ok(())
 }
 
-fn post_store() -> Result<(), String> {
-    mv!(git_add_all(&get_default_store_path()?));
-    mv!(git_commit_with_date(&get_default_store_path()?));
-    mv!(git_push(&get_default_store_path()?));
+fn post_store() -> Result<()> {
+    git_add_all(&get_default_store_path()?)?;
+    git_commit_with_date(&get_default_store_path()?)?;
+    git_push(&get_default_store_path()?)?;
     Ok(())
 }

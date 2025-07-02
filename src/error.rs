@@ -1,4 +1,4 @@
-use serde::Serialize;
+use std::path::{PathBuf, StripPrefixError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -7,6 +7,9 @@ pub enum Error {
     SerdeJson(serde_json::Error),
     HomeDirNotFound,
     GitPotentialConflict,
+    UnconventionalClapArgMissing,
+    PathNotClassified(PathBuf),
+    PathWasNotAbsolute(StripPrefixError),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
