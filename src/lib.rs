@@ -80,7 +80,18 @@ fn eqalize(
                 create_symlink(path1, path2)?;
             }
         },
-        (PathType::Dir, PathType::NoExist) => make_dir(path2)?,
+        (PathType::Dir, PathType::NoExist) => {
+            make_dir(path2)?;
+            let children = get_child_suffixes(path1)?;
+            for child in children {
+                eqalize(
+                    &path1.join(&child),
+                    &path2.join(&child),
+                    eq_choice,
+                    user_choice,
+                )?;
+            }
+        }
         (PathType::NoExist, PathType::Dir) => return Err(Error::EqNoExistDirError),
         (PathType::SymLink, PathType::NoExist) => {
             return Err(Error::EqSymLinkWithoutSource(path1.to_path_buf()));
