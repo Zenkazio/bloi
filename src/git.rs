@@ -73,7 +73,6 @@ pub fn git_detect_potential_conflict(path: &PathBuf) -> Result<()> {
 // mod tests {
 //     use std::{path::PathBuf, process::Command};
 
-
 //     use crate::git::{
 //         detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull, git_push,
 //     };
@@ -82,26 +81,26 @@ pub fn git_detect_potential_conflict(path: &PathBuf) -> Result<()> {
 //     fn test_commands() {
 //         dbg!(Command::new("echo").arg("hallo").status().unwrap());
 
-        // let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
-        // git_add_all(&base);
-        // git_commit_with_date(&base);
-    }
-    // #[test]
-    // fn test_git_commands_working() {
-    //     //this is manily used just to automate git with this project...
-    //     let path = &PathBuf::from("/home/zenkazio/Projects/bloi/");
+// let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
+// git_add_all(&base);
+// git_commit_with_date(&base);
+//   }
+// #[test]
+// fn test_git_commands_working() {
+//     //this is manily used just to automate git with this project...
+//     let path = &PathBuf::from("/home/zenkazio/Projects/bloi/");
 
-    //     git_add_all(path).unwrap();
-    //     git_commit_with_date(path).unwrap();
-    //     git_fetch(path).unwrap();
-    //     detect_potential_conflict(path).unwrap();
-    //     git_pull(path).unwrap();
-    //     git_commit_with_date(path).unwrap();
-    //     git_push(path).unwrap();
+//     git_add_all(path).unwrap();
+//     git_commit_with_date(path).unwrap();
+//     git_fetch(path).unwrap();
+//     detect_potential_conflict(path).unwrap();
+//     git_pull(path).unwrap();
+//     git_commit_with_date(path).unwrap();
+//     git_push(path).unwrap();
 
-    //     Command::new("cargo").args(&["build", "--release"]);
-    // }
-}
+//     Command::new("cargo").args(&["build", "--release"]);
+// }
+//}
 
 //         // let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
 //         // git_add_all(&base);
