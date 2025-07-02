@@ -1,22 +1,20 @@
-//#![allow(unused)]
+#![allow(unused)]
 
+use crate::error::*;
 use std::env;
 use std::path::PathBuf;
 
 use crate::cli::*;
 use crate::config::{Config, get_default_store_path};
-use crate::git::{
-    detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull, git_push,
-};
-use crate::utils::{UserChoice, store_routine};
+use crate::git::*;
+
 mod cli;
 mod config;
+mod error;
 mod git;
-mod path_tree;
-mod utils;
 
-fn main() -> Result<(), String> {
-    let mut config = config::load_config()?;
+fn main() -> Result<()> {
+    let mut config = config::load_config().unwrap();
 
     match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
@@ -46,7 +44,7 @@ fn main() -> Result<(), String> {
             list_adds(&config);
         }
         Some(("change-store-dir", _)) => {
-            todo!("do it in the config.json until then");
+            todo!("currently not possible");
         }
         Some(("list", _)) => {
             list_adds(&config);
@@ -86,7 +84,7 @@ fn pre_store() -> Result<(), String> {
     mv!(git_add_all(&get_default_store_path()?));
     mv!(git_commit_with_date(&get_default_store_path()?));
     mv!(git_fetch(&get_default_store_path()?));
-    detect_potential_conflict(&get_default_store_path()?)?;
+    git_detect_potential_conflict(&get_default_store_path()?)?;
     mv!(git_pull(&get_default_store_path()?));
     Ok(())
 }

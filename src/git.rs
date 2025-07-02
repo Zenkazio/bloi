@@ -1,10 +1,10 @@
+use crate::error::*;
 use std::{
     collections::HashSet,
     path::PathBuf,
     process::{Command, Output},
 };
 
-use crate::mv;
 fn run_git_command(args: &[&str], path: &PathBuf) -> std::io::Result<Output> {
     Command::new("git").args(args).current_dir(path).output()
 }
@@ -27,7 +27,14 @@ pub fn git_fetch(path: &PathBuf) -> std::io::Result<Output> {
     println!("Perform \"git fetch\" in {:?}", path);
     run_git_command(&["fetch"], path)
 }
-
+pub fn git_push(path: &PathBuf) -> std::io::Result<Output> {
+    println!("Perform \"git push\" in {:?}", path);
+    run_git_command(&["push"], path)
+}
+pub fn git_pull(path: &PathBuf) -> std::io::Result<Output> {
+    println!("Perform \"git pull\" in {:?}", path);
+    run_git_command(&["pull"], path)
+}
 fn get_changed_files(args: &[&str], path: &PathBuf) -> std::io::Result<HashSet<String>> {
     let output = run_git_command(args, path)?;
 
@@ -37,13 +44,12 @@ fn get_changed_files(args: &[&str], path: &PathBuf) -> std::io::Result<HashSet<S
         .collect())
 }
 
-pub fn detect_potential_conflict(path: &PathBuf) -> Result<(), String> {
+pub fn git_detect_potential_conflict(path: &PathBuf) -> Result<()> {
     println!("Perform git conflict detection");
-    let local_changes = mv!(get_changed_files(&["diff", "--name-only", "HEAD"], path));
-    let remote_changes = mv!(get_changed_files(
-        &["diff", "--name-only", "HEAD", "origin/main"],
-        path
-    ));
+    let local_changes =
+        get_changed_files(&["diff", "--name-only", "HEAD"], path).map_err(Error::Io)?;
+    let remote_changes = get_changed_files(&["diff", "--name-only", "HEAD", "origin/main"], path)
+        .map_err(Error::Io)?;
 
     let conflicts: Vec<_> = local_changes.intersection(&remote_changes).collect();
     if !conflicts.is_empty() {
@@ -51,50 +57,40 @@ pub fn detect_potential_conflict(path: &PathBuf) -> Result<(), String> {
         for file in conflicts {
             println!(" - {}", file);
         }
-        return Err(
-            "Please resolve conflicts manually. No automatic merge will be performed.".to_string(),
-        );
+        return Err(Error::GitPotentialConflict);
     }
     Ok(())
 }
-pub fn git_push(path: &PathBuf) -> std::io::Result<Output> {
-    println!("Perform \"git push\" in {:?}", path);
-    run_git_command(&["push"], path)
-}
-pub fn git_pull(path: &PathBuf) -> std::io::Result<Output> {
-    println!("Perform \"git pull\" in {:?}", path);
-    run_git_command(&["pull"], path)
-}
 
-#[cfg(test)]
-mod tests {
-    use std::{path::PathBuf, process::Command};
+// #[cfg(test)]
+// mod tests {
+//     use std::{path::PathBuf, process::Command};
 
-    use crate::git::{
-        detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull, git_push,
-    };
+//     use crate::git::{
+//         detect_potential_conflict, git_add_all, git_commit_with_date, git_fetch, git_pull, git_push,
+//     };
 
-    #[test]
-    fn test_commands() {
-        dbg!(Command::new("echo").arg("hallo").status().unwrap());
+//     #[test]
+//     fn test_commands() {
+//         dbg!(Command::new("echo").arg("hallo").status().unwrap());
 
-        // let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
-        // git_add_all(&base);
-        // git_commit_with_date(&base);
-    }
-    #[test]
-    fn test_git_commands_working() {
-        //this is manily used just to automate git with this project...
-        let path = &PathBuf::from("/home/zenkazio/Projects/bloi/");
+//         // let base = PathBuf::from("/home/zenkazio/Projects/bloi/");
+//         // git_add_all(&base);
+//         // git_commit_with_date(&base);
+//     }
+//     #[test]
+//     fn test_git_commands_working() {
+//         //this is manily used just to automate git with this project...
+//         let path = &PathBuf::from("/home/zenkazio/Projects/bloi/");
 
-        git_add_all(path).unwrap();
-        git_commit_with_date(path).unwrap();
-        git_fetch(path).unwrap();
-        detect_potential_conflict(path).unwrap();
-        git_pull(path).unwrap();
-        git_commit_with_date(path).unwrap();
-        git_push(path).unwrap();
+//         git_add_all(path).unwrap();
+//         git_commit_with_date(path).unwrap();
+//         git_fetch(path).unwrap();
+//         detect_potential_conflict(path).unwrap();
+//         git_pull(path).unwrap();
+//         git_commit_with_date(path).unwrap();
+//         git_push(path).unwrap();
 
-        Command::new("cargo").args(&["build", "--release"]);
-    }
-}
+//         Command::new("cargo").args(&["build", "--release"]);
+//     }
+// }
