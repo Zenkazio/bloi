@@ -17,6 +17,7 @@ pub enum Error {
     EqNoExistNoExist(PathBuf, PathBuf), // "Neither source nor destination exists"
     EqFileSymLinkDir(PathBuf, PathBuf), // "Type mismatch between paths"
     NoPossibleUserChoice(String), // "Invalid selection"
+    NoParent,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

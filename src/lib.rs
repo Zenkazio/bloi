@@ -62,26 +62,32 @@ fn eqalize(
     let path_type2 = classify_path(path2)?;
 
     match (path_type1, path_type2) {
-        (PathType::File, PathType::NoExist) => match eq_choice {
-            EqChoice::Copy => copy_file(path1, path2)?,
-            EqChoice::SymLinkInOne => {
-                copy_file(path1, path2)?;
-                delete_file(path1)?;
-                create_symlink(path2, path1)?;
+        (PathType::File, PathType::NoExist) => {
+            make_dir_all_file(path2)?;
+            match eq_choice {
+                EqChoice::Copy => copy_file(path1, path2)?,
+                EqChoice::SymLinkInOne => {
+                    copy_file(path1, path2)?;
+                    delete_file(path1)?;
+                    create_symlink(path2, path1)?;
+                }
+                EqChoice::SymLinkInTwo => create_symlink(path1, path2)?,
             }
-            EqChoice::SymLinkInTwo => create_symlink(path1, path2)?,
-        },
-        (PathType::NoExist, PathType::File) => match eq_choice {
-            EqChoice::Copy => copy_file(path2, path1)?,
-            EqChoice::SymLinkInOne => create_symlink(path2, path1)?,
-            EqChoice::SymLinkInTwo => {
-                copy_file(path2, path1)?;
-                delete_file(path2)?;
-                create_symlink(path1, path2)?;
+        }
+        (PathType::NoExist, PathType::File) => {
+            make_dir_all_file(path1)?;
+            match eq_choice {
+                EqChoice::Copy => copy_file(path2, path1)?,
+                EqChoice::SymLinkInOne => create_symlink(path2, path1)?,
+                EqChoice::SymLinkInTwo => {
+                    copy_file(path2, path1)?;
+                    delete_file(path2)?;
+                    create_symlink(path1, path2)?;
+                }
             }
-        },
+        }
         (PathType::Dir, PathType::NoExist) => {
-            make_dir(path2)?;
+            make_dir_all(path2)?;
             let children = get_child_suffixes(path1)?;
             for child in children {
                 eqalize(
@@ -222,10 +228,19 @@ fn copy_file(src: &PathBuf, dst: &PathBuf) -> Result<()> {
 fn delete_file(path: &PathBuf) -> Result<()> {
     fs::remove_file(path).map_err(Error::Io)
 }
-fn make_dir(path: &PathBuf) -> Result<()> {
-    fs::create_dir(path).map_err(Error::Io)
+// fn make_dir(path: &PathBuf) -> Result<()> {
+//     fs::create_dir(path).map_err(Error::Io)
+// }
+fn make_dir_all(path: &PathBuf) -> Result<()> {
+    fs::create_dir_all(path).map_err(Error::Io)
 }
-
+fn make_dir_all_file(path: &PathBuf) -> Result<()> {
+    let parent = match path.parent() {
+        Some(s) => s.to_path_buf(),
+        None => return Err(Error::NoParent),
+    };
+    fs::create_dir_all(parent).map_err(Error::Io)
+}
 fn get_user_choice(user_choice: &mut UserChoice) -> Result<()> {
     let mut input = String::new();
     println!("File conflict detected! Both files exist in both locations.");
