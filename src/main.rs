@@ -3,11 +3,12 @@
 use std::env;
 use std::path::PathBuf;
 
+use bloi::{store_routine, unstore_routine};
+
 use crate::cli::*;
 use crate::config::{Config, get_default_store_path};
 use crate::error::*;
 use crate::git::*;
-use bloi::store_routine;
 
 mod cli;
 mod config;
@@ -28,7 +29,8 @@ fn main() -> Result<()> {
             let current_dir = env::current_dir().map_err(Error::Io)?;
             config.adds.insert(current_dir.join(path));
             config.save()?;
-            println!("added {:?}", path);
+            println!("Added {:?} to managed files", path);
+            println!("It will be included in the next store operation");
             list_adds(&config);
         }
         Some(("remove", sub_m)) => {
@@ -39,21 +41,36 @@ fn main() -> Result<()> {
                 }
             };
             let current_dir = env::current_dir().map_err(Error::Io)?;
-            config.adds.remove(&current_dir.join(path));
-            config.save()?;
-            println!("removed {:?}", path);
-            list_adds(&config);
+            let target_path = current_dir.join(path);
+            if config.adds.remove(&target_path) {
+                config.save()?;
+                println!("Removed {:?} from managed files", target_path);
+                list_adds(&config);
+                println!("Original content has been restored");
+                println!("unstoring at the moment to dangerous");
+                //unstore_routine(&target_path, &get_default_store_path()?);
+            } else {
+                println!("{:?} was not found in the config", target_path);
+            }
         }
         Some(("change-store-dir", _)) => {
             todo!("currently not possible");
         }
         Some(("list", _)) => {
+            println!("Currently managed files and directories:");
+            // If list is empty
+            if config.adds.is_empty() {
+                println!("  No files are currently being managed.");
+                println!("  Use 'bloi add <path>' to start managing files.");
+            }
             list_adds(&config);
         }
         Some(("store", _)) => {
             pre_store()?;
             config = config::load_config()?;
+            println!("Starting storage operation for all managed files...");
             store(&config)?;
+            println!("Storage completed successfully. All files are now symlinked.");
             post_store()?;
         }
         _ => {}

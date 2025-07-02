@@ -14,17 +14,17 @@ fn run_git_command(args: &[&str], path: &PathBuf) -> Result<Output> {
 }
 
 pub fn git_add_all(path: &PathBuf) -> Result<Output> {
-    println!("Perform \"git add .\" in {:?}", path);
+    println!("Adding all files in {:?} to git staging area", path);
     run_git_command(&["add", "."], path)
 }
 pub fn git_commit_with_date(path: &PathBuf) -> Result<Output> {
     let date = Command::new("date").output().map_err(Error::Io)?;
     let date_as_string = String::from_utf8_lossy(&date.stdout).trim().to_string();
-    let mut msg = String::from("Auto commit made by \"bloi\"");
+    let mut msg = String::from("Automatic backup created by bloi");
     msg.push_str("\n");
     msg.push_str(&date_as_string);
 
-    println!("Perform \"git commit\" in {:?}", path);
+    println!("Committing changes to storage repository...");
     run_git_command(&["commit", "-m", &msg], path)
 }
 pub fn git_fetch(path: &PathBuf) -> Result<Output> {

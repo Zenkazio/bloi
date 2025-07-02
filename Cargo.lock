@@ -66,7 +66,6 @@ dependencies = [
  "dirs",
  "serde",
  "serde_json",
- "thiserror",
 ]
 
 [[package]]

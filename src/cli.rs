@@ -3,15 +3,15 @@ use std::path::PathBuf;
 
 pub fn build_cli() -> Command {
     Command::new("bloi")
-        .version("0.1")
-        .about("Program stores files and directories and replaces them with a (soft) symlink")
+        .version("0.2")
+        .about("Manage files by storing them centrally and replacing with symlinks")
         .after_help("Tip: Use `bloi help <command>` for more details on a specific subcommand.")
         .subcommand(
             Command::new("add")
-                .about("Adds file or directory to the store")
+                .about("Add a file or directory to be managed by bloi")
                 .arg(
                     Arg::new("path")
-                        .help("The file or directory path to be added to the store (absolute path stored)")
+                        .help("Path to the file/directory you want to manage (will be stored as absolute path)")
                         .required(true)
                         .value_parser(validate_path)
                         .value_name("PATH")
@@ -20,7 +20,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("remove")
-                .about("remove file or directory from storeing process")
+                .about("Stop managing a file or directory and restore original content")
                 .arg(
                     Arg::new("path")
                         .help("The file or directory path to be removed from the store (absolute path stored)")
@@ -32,7 +32,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("change-store-dir")
-                .about("change store dir default /home/$USER/.store")
+                .about("Change the directory where files are stored (default: ~/.store)")
                 .arg(
                     Arg::new("path")
                         .help("path to store dir")
@@ -44,11 +44,11 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("list")
-                .about("lists stored files/dir"),
+                .about("List all files and directories currently managed by bloi"),
         )
         .subcommand(
             Command::new("store")
-                .about("Copies file (recursively) and replaces them with symlinks"),
+                .about("Copy managed files to storage and replace originals with symlinks"),
         )
 }
 
