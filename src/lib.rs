@@ -23,8 +23,8 @@ pub enum Error {
     PathNotClassified(PathBuf),
     #[error("StripPrefix: {0}")]
     OtherStripPrefixError(#[from] StripPrefixError),
-    #[error("this should not happen")]
-    EqNoExistDirError,
+    #[error("this should not happen\n{0}")]
+    EqNoExistDirError(PathBuf),
     #[error("Symlink without source potential data loss\n{0}")]
     EqSymLinkWithoutSource(PathBuf),
     #[error("Two Symlinks potential data loss\n{0}\n{1}")]
@@ -75,12 +75,18 @@ fn work_on_entry(
     user_choice: &mut UserChoice,
 ) -> Result<()> {
     let path_to_store = store_path.join(absolute_to_relative(target_path));
-    eqalize(
+    match eqalize(
         target_path,
         &path_to_store,
         &EqChoice::SymLinkInOne,
         user_choice,
-    )?;
+    ) {
+        Ok(_) => {}
+        Err(e) => match e {
+            Error::EqNoExistDirError(_) => {}
+            e => return Err(e),
+        },
+    };
     eqalize(
         &path_to_store,
         target_path,
@@ -136,7 +142,9 @@ fn eqalize(
                 )?;
             }
         }
-        (PathType::NoExist, PathType::Dir) => return Err(Error::EqNoExistDirError),
+        (PathType::NoExist, PathType::Dir) => {
+            return Err(Error::EqNoExistDirError(path2.to_path_buf()));
+        }
         (PathType::SymLink, PathType::NoExist) => {
             return Err(Error::EqSymLinkWithoutSource(path1.to_path_buf()));
         }
