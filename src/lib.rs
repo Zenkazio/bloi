@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fmt, fs,
     io::stdin,
     os::unix::fs::symlink,
     path::{PathBuf, StripPrefixError},
@@ -7,38 +7,46 @@ use std::{
 
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error)]
 pub enum Error {
-    #[error("IO: {0}")]
+    #[error("Io: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Json: {0}")]
+    #[error("SerdeJson: {0}")]
     SerdeJson(#[from] serde_json::Error),
-    #[error("Home dir could not be found")]
+    #[error("HomeDirNotFound: Home dir could not be found")]
     HomeDirNotFound,
-    #[error("Found a potential git conflict - merge must be performed by user")]
+    #[error(
+        "GitPotentialConflict: Found a potential git conflict - merge must be performed by user"
+    )]
     GitPotentialConflict,
-    #[error("Parameter is missing: {0}")]
+    #[error("UnconventionalClapArgMissing: Parameter is missing: {0}")]
     UnconventionalClapArgMissing(String),
-    #[error("Path could not be classified : {0}")]
+    #[error("PathNotClassified: Path could not be classified: {0}")]
     PathNotClassified(PathBuf),
-    #[error("StripPrefix: {0}")]
+    #[error("OtherStripPrefixError: {0}")]
     OtherStripPrefixError(#[from] StripPrefixError),
-    #[error("this should not happen\n{0}")]
+    #[error("EqNoExistDirError: this should not happen\n{0}")]
     EqNoExistDirError(PathBuf),
-    #[error("Symlink without source potential data loss\n{0}")]
+    #[error("EqSymLinkWithoutSource: Symlink without source potential data loss\n{0}")]
     EqSymLinkWithoutSource(PathBuf),
-    #[error("Two Symlinks potential data loss\n{0}\n{1}")]
+    #[error("EqSymLinkSymLink: Two Symlinks potential data loss\n{0}\n{1}")]
     EqSymLinkSymLink(PathBuf, PathBuf),
-    #[error("very strange no exist\n{0}\n{1}")]
+    #[error("EqNoExistNoExist: very strange no exist\n{0}\n{1}")]
     EqNoExistNoExist(PathBuf, PathBuf),
-    #[error("PathTypeError\n{0}\n{1}")]
+    #[error("EqFileSymLinkDir: PathTypeError\n{0}\n{1}")]
     EqFileSymLinkDir(PathBuf, PathBuf),
-    #[error("Invalid selection: {0}")]
+    #[error("NoPossibleUserChoice: Invalid selection: {0}")]
     NoPossibleUserChoice(String),
-    #[error("Directory has no parent")]
+    #[error("NoParent: Directory has no parent")]
     NoParent,
 }
 
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // nutze Display-Text auch für Debug
+        write!(f, "{}", self)
+    }
+}
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
