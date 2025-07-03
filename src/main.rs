@@ -1,18 +1,17 @@
 use std::env;
 use std::path::PathBuf;
 
-use bloi::*;
-
 use crate::cli::*;
-use crate::config::{Config, get_default_store_path};
+use crate::config::*;
 use crate::git::*;
+use bloi::*;
 
 mod cli;
 mod config;
 mod git;
 
 fn main() -> Result<()> {
-    let mut config = config::load_config()?;
+    let mut config = Config::load_config()?;
 
     match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
@@ -23,7 +22,7 @@ fn main() -> Result<()> {
                 }
             };
             let current_dir = env::current_dir().map_err(Error::Io)?;
-            config.adds.insert(current_dir.join(path));
+            config.change_adds().insert(current_dir.join(path));
             config.save()?;
             println!("Added {:?} to managed files", path);
             println!("It will be included in the next store operation");
@@ -38,7 +37,7 @@ fn main() -> Result<()> {
             };
             let current_dir = env::current_dir().map_err(Error::Io)?;
             let target_path = current_dir.join(path);
-            if config.adds.remove(&target_path) {
+            if config.change_adds().remove(&target_path) {
                 config.save()?;
                 println!("Removed {:?} from managed files", target_path);
                 list_adds(&config);
@@ -55,19 +54,19 @@ fn main() -> Result<()> {
         Some(("list", _)) => {
             println!("Currently managed files and directories:");
             // If list is empty
-            if config.adds.is_empty() {
+            if config.get_adds().is_empty() {
                 println!("  No files are currently being managed.");
                 println!("  Use 'bloi add <path>' to start managing files.");
             }
             list_adds(&config);
         }
         Some(("store", _)) => {
-            pre_store()?;
-            config = config::load_config()?;
+            pre_store(&config)?;
+            config = Config::load_config()?;
             println!("Starting storage operation for all managed files...");
             store(&config)?;
             println!("Storage completed successfully. All files are now symlinked.");
-            post_store()?;
+            post_store(&config)?;
         }
         _ => {}
     }
@@ -75,28 +74,32 @@ fn main() -> Result<()> {
 }
 
 fn store(config: &Config) -> Result<()> {
-    for target_path in &config.adds {
+    for target_path in config.get_adds() {
         store_routine(target_path, &get_default_store_path()?)?;
     }
     Ok(())
 }
 
 fn list_adds(config: &Config) {
-    for entry in &config.adds {
+    for entry in config.get_adds() {
         println!("- {:?}", entry);
     }
     println!();
 }
 
-fn pre_store() -> Result<()> {
-    git_detect_potential_conflict(&get_default_store_path()?)?;
-    git_pull(&get_default_store_path()?)?;
+fn pre_store(config: &Config) -> Result<()> {
+    if *config.get_use_git() {
+        git_detect_potential_conflict(&get_default_store_path()?)?;
+        git_pull(&get_default_store_path()?)?;
+    }
     Ok(())
 }
 
-fn post_store() -> Result<()> {
-    git_add_all(&get_default_store_path()?)?;
-    git_commit_with_date(&get_default_store_path()?)?;
-    git_push(&get_default_store_path()?)?;
+fn post_store(config: &Config) -> Result<()> {
+    if *config.get_use_git() {
+        git_add_all(&get_default_store_path()?)?;
+        git_commit_with_date(&get_default_store_path()?)?;
+        git_push(&get_default_store_path()?)?;
+    }
     Ok(())
 }

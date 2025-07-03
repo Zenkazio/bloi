@@ -6,36 +6,48 @@ use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Config {
-    pub adds: HashSet<PathBuf>,
+    adds: HashSet<PathBuf>,
+    use_git: bool,
 }
-
-impl Config {
-    fn default_config() -> Self {
+impl Default for Config {
+    fn default() -> Self {
         let temp = Self {
             adds: HashSet::new(),
+            use_git: true,
         };
         temp
     }
+}
+impl Config {
+    pub fn load_config() -> Result<Config> {
+        if !get_full_config_file_path()?.is_file() {
+            fs::create_dir_all(get_default_store_path()?)?;
+            let config = Config::default();
+            config.save()?;
+            return Ok(config);
+        }
+        let json = fs::read_to_string(get_full_config_file_path()?)?;
+
+        let config = serde_json::from_str(&json)?;
+        Ok(config)
+    }
     pub fn save(&self) -> Result<()> {
-        let json = serde_json::to_string_pretty(&self).map_err(Error::SerdeJson)?;
-        let mut file = fs::File::create(get_full_config_file_path()?).map_err(Error::Io)?;
+        let json = serde_json::to_string_pretty(&self)?;
+        let mut file = fs::File::create(get_full_config_file_path()?)?;
         file.write_all(json.as_bytes())?;
         Ok(())
     }
-}
-
-pub fn load_config() -> Result<Config> {
-    if !get_full_config_file_path()?.is_file() {
-        fs::create_dir_all(get_default_store_path()?)?;
-        let config = Config::default_config();
-        config.save()?;
-        return Ok(config);
+    pub fn get_adds(&self) -> &HashSet<PathBuf> {
+        &self.adds
     }
-    let json = fs::read_to_string(get_full_config_file_path()?).map_err(Error::Io)?;
-
-    let config = serde_json::from_str(&json).map_err(Error::SerdeJson)?;
-    Ok(config)
+    pub fn change_adds(&mut self) -> &mut HashSet<PathBuf> {
+        &mut self.adds
+    }
+    pub fn get_use_git(&self) -> &bool {
+        &self.use_git
+    }
 }
 
 /// /home/$USER/.store/
