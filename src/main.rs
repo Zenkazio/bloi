@@ -1,9 +1,7 @@
-#![allow(unused)]
-
 use std::env;
 use std::path::PathBuf;
 
-use bloi::{store_routine, unstore_routine};
+use bloi::store_routine;
 
 use crate::cli::*;
 use crate::config::{Config, get_default_store_path};
