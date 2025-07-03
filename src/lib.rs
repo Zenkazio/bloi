@@ -270,7 +270,7 @@ fn delete_file(path: &PathBuf) -> Result<()> {
 //     fs::create_dir(path).map_err(Error::Io)
 // }
 fn make_dir_all(path: &PathBuf) -> Result<()> {
-    fs::create_dir_all(path).map_err(Error::Io)
+    Ok(fs::create_dir_all(path)?)
 }
 fn make_dir_all_file(path: &PathBuf) -> Result<()> {
     let parent = match path.parent() {
