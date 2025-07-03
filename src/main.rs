@@ -1,16 +1,14 @@
 use std::env;
 use std::path::PathBuf;
 
-use bloi::store_routine;
+use bloi::*;
 
 use crate::cli::*;
 use crate::config::{Config, get_default_store_path};
-use crate::error::*;
 use crate::git::*;
 
 mod cli;
 mod config;
-mod error;
 mod git;
 
 fn main() -> Result<()> {
@@ -21,7 +19,7 @@ fn main() -> Result<()> {
             let path = match sub_m.get_one::<PathBuf>("path") {
                 Some(s) => s,
                 None => {
-                    return Err(Error::UnconventionalClapArgMissing);
+                    return Err(Error::UnconventionalClapArgMissing("path".to_string()));
                 }
             };
             let current_dir = env::current_dir().map_err(Error::Io)?;
@@ -35,7 +33,7 @@ fn main() -> Result<()> {
             let path = match sub_m.get_one::<PathBuf>("path") {
                 Some(s) => s,
                 None => {
-                    return Err(Error::UnconventionalClapArgMissing);
+                    return Err(Error::UnconventionalClapArgMissing("path".to_string()));
                 }
             };
             let current_dir = env::current_dir().map_err(Error::Io)?;
@@ -78,7 +76,7 @@ fn main() -> Result<()> {
 
 fn store(config: &Config) -> Result<()> {
     for target_path in &config.adds {
-        store_routine(target_path, &get_default_store_path()?);
+        store_routine(target_path, &get_default_store_path()?)?;
     }
     Ok(())
 }

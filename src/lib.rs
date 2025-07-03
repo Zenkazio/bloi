@@ -1,7 +1,45 @@
-use crate::error::*;
-use std::{fs, io::stdin, os::unix::fs::symlink, path::PathBuf};
+use std::{
+    fs,
+    io::stdin,
+    os::unix::fs::symlink,
+    path::{PathBuf, StripPrefixError},
+};
 
-mod error;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("IO: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Json: {0}")]
+    SerdeJson(#[from] serde_json::Error),
+    #[error("Home dir could not be found")]
+    HomeDirNotFound,
+    #[error("Found a potential git conflict - merge must be performed by user")]
+    GitPotentialConflict,
+    #[error("Parameter is missing: {0}")]
+    UnconventionalClapArgMissing(String),
+    #[error("Path could not be classified : {0}")]
+    PathNotClassified(PathBuf),
+    #[error("StripPrefix: {0}")]
+    OtherStripPrefixError(#[from] StripPrefixError),
+    #[error("this should not happen")]
+    EqNoExistDirError,
+    #[error("Symlink without source potential data loss\n{0}")]
+    EqSymLinkWithoutSource(PathBuf),
+    #[error("Two Symlinks potential data loss\n{0}\n{1}")]
+    EqSymLinkSymLink(PathBuf, PathBuf),
+    #[error("very strange no exist\n{0}\n{1}")]
+    EqNoExistNoExist(PathBuf, PathBuf),
+    #[error("PathTypeError\n{0}\n{1}")]
+    EqFileSymLinkDir(PathBuf, PathBuf),
+    #[error("Invalid selection: {0}")]
+    NoPossibleUserChoice(String),
+    #[error("Directory has no parent")]
+    NoParent,
+}
+
+pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
 enum PathType {
@@ -218,15 +256,15 @@ fn absolute_to_relative(absolute_path: &PathBuf) -> PathBuf {
 }
 
 fn create_symlink(src: &PathBuf, dst: &PathBuf) -> Result<()> {
-    symlink(src, dst).map_err(Error::Io)
+    Ok(symlink(src, dst)?)
 }
 
 fn copy_file(src: &PathBuf, dst: &PathBuf) -> Result<()> {
-    fs::copy(src, dst).map_err(Error::Io)?;
+    fs::copy(src, dst)?;
     Ok(())
 }
 fn delete_file(path: &PathBuf) -> Result<()> {
-    fs::remove_file(path).map_err(Error::Io)
+    Ok(fs::remove_file(path)?)
 }
 // fn make_dir(path: &PathBuf) -> Result<()> {
 //     fs::create_dir(path).map_err(Error::Io)

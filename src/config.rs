@@ -1,4 +1,4 @@
-use crate::error::*;
+use bloi::*;
 use std::collections::HashSet;
 use std::{fs, io::Write, path::PathBuf};
 
@@ -20,14 +20,14 @@ impl Config {
     pub fn save(&self) -> Result<()> {
         let json = serde_json::to_string_pretty(&self).map_err(Error::SerdeJson)?;
         let mut file = fs::File::create(get_full_config_file_path()?).map_err(Error::Io)?;
-        file.write_all(json.as_bytes());
+        file.write_all(json.as_bytes())?;
         Ok(())
     }
 }
 
 pub fn load_config() -> Result<Config> {
     if !get_full_config_file_path()?.is_file() {
-        fs::create_dir_all(get_default_store_path()?);
+        fs::create_dir_all(get_default_store_path()?)?;
         let config = Config::default_config();
         config.save()?;
         return Ok(config);
