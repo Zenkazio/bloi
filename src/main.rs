@@ -55,6 +55,10 @@ fn main() -> Result<()> {
         Some(("change-store-dir", _)) => {
             todo!("currently not possible");
         }
+        Some(("git", _)) => {
+            config.switch_git();
+            config.save()?;
+        }
         Some(("list", _)) => {
             println!("Currently managed files and directories:");
             // If list is empty

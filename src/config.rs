@@ -51,6 +51,9 @@ impl Config {
     pub fn get_use_git(&self) -> &bool {
         &self.use_git
     }
+    pub fn switch_git(&mut self) {
+        self.use_git = !self.use_git
+    }
 }
 
 /// /home/$USER/.store/
