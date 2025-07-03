@@ -6,18 +6,16 @@ use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(default)]
 pub struct Config {
     adds: HashSet<PathBuf>,
     use_git: bool,
 }
 impl Default for Config {
     fn default() -> Self {
-        let temp = Self {
+        Self {
             adds: HashSet::new(),
-            use_git: true,
-        };
-        temp
+            use_git: false,
+        }
     }
 }
 impl Config {
@@ -29,7 +27,6 @@ impl Config {
             return Ok(config);
         }
         let json = fs::read_to_string(get_full_config_file_path()?)?;
-
         let config = serde_json::from_str(&json)?;
         Ok(config)
     }
@@ -38,6 +35,12 @@ impl Config {
         let mut file = fs::File::create(get_full_config_file_path()?)?;
         file.write_all(json.as_bytes())?;
         Ok(())
+    }
+    pub fn list_adds(&self) {
+        for entry in self.get_adds() {
+            println!("- {:?}", entry);
+        }
+        println!();
     }
     pub fn get_adds(&self) -> &HashSet<PathBuf> {
         &self.adds
@@ -58,6 +61,6 @@ pub fn get_default_store_path() -> Result<PathBuf> {
     Err(Error::HomeDirNotFound)
 }
 /// /home/$USER/.store/config.json
-pub fn get_full_config_file_path() -> Result<PathBuf> {
+fn get_full_config_file_path() -> Result<PathBuf> {
     Ok(get_default_store_path()?.join("config.json"))
 }

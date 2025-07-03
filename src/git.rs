@@ -12,7 +12,13 @@ fn run_git_command(args: &[&str], path: &PathBuf) -> Result<Output> {
         .output()
         .map_err(Error::Io)
 }
-
+pub fn git_init(path: &PathBuf) -> Result<()> {
+    if !path.join(".git").exists() {
+        println!("Initializing Git repository in directory: {:?}", path);
+        run_git_command(&["init"], path)?;
+    }
+    Ok(())
+}
 pub fn git_add_all(path: &PathBuf) -> Result<Output> {
     println!("Adding all files in {:?} to git staging area", path);
     run_git_command(&["add", "."], path)

@@ -13,6 +13,10 @@ mod git;
 fn main() -> Result<()> {
     let mut config = Config::load_config()?;
 
+    if *config.get_use_git() {
+        git_init(&get_default_store_path()?)?;
+    }
+
     match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
             let path = match sub_m.get_one::<PathBuf>("path") {
@@ -26,7 +30,7 @@ fn main() -> Result<()> {
             config.save()?;
             println!("Added {:?} to managed files", path);
             println!("It will be included in the next store operation");
-            list_adds(&config);
+            config.list_adds();
         }
         Some(("remove", sub_m)) => {
             let path = match sub_m.get_one::<PathBuf>("path") {
@@ -40,7 +44,7 @@ fn main() -> Result<()> {
             if config.change_adds().remove(&target_path) {
                 config.save()?;
                 println!("Removed {:?} from managed files", target_path);
-                list_adds(&config);
+                config.list_adds();
                 println!("Original content has been restored");
                 println!("unstoring at the moment to dangerous");
                 //unstore_routine(&target_path, &get_default_store_path()?);
@@ -58,7 +62,7 @@ fn main() -> Result<()> {
                 println!("  No files are currently being managed.");
                 println!("  Use 'bloi add <path>' to start managing files.");
             }
-            list_adds(&config);
+            config.list_adds();
         }
         Some(("store", _)) => {
             pre_store(&config)?;
@@ -78,13 +82,6 @@ fn store(config: &Config) -> Result<()> {
         store_routine(target_path, &get_default_store_path()?)?;
     }
     Ok(())
-}
-
-fn list_adds(config: &Config) {
-    for entry in config.get_adds() {
-        println!("- {:?}", entry);
-    }
-    println!();
 }
 
 fn pre_store(config: &Config) -> Result<()> {
