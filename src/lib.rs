@@ -72,6 +72,7 @@ enum EqChoice {
 }
 
 pub fn store_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()> {
+    println!("Storing: {:?}", target_path);
     let mut user_choice = UserChoice::NoChoice;
     work_on_entry(target_path, store_path, &mut user_choice)?;
     Ok(())
