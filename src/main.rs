@@ -45,9 +45,8 @@ fn main() -> Result<()> {
                 config.save()?;
                 println!("Removed {:?} from managed files", target_path);
                 config.list_adds();
+                unstore_routine(&target_path, &get_default_store_path()?)?;
                 println!("Original content has been restored");
-                println!("unstoring at the moment to dangerous");
-                //unstore_routine(&target_path, &get_default_store_path()?);
             } else {
                 println!("{:?} was not found in the config", target_path);
             }

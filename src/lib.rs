@@ -345,7 +345,13 @@ pub fn unstore_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()
         &EqChoice::Copy,
         &mut user_choice,
     )?;
-    //delete_all(store_path)?;
+    eqalize(
+        &path_to_store,
+        target_path,
+        &EqChoice::Copy,
+        &mut user_choice,
+    )?;
+    delete_all(&path_to_store)?;
     Ok(())
 }
 
@@ -357,34 +363,37 @@ fn delete_all(path: &PathBuf) -> Result<()> {
 #[cfg(test)]
 #[allow(unused_must_use)]
 fn test_setup() -> (PathBuf, PathBuf) {
-    test_teardown();
-
     use std::io::Write;
+    let (target_path, store_path) = test_teardown();
 
-    let path = PathBuf::from("/home/zenkazio/Projects/bloi/TestEnv");
-    let env = path.join("env1/");
-    let env2 = path.join("env2/");
+    make_dir_all(&target_path);
+    make_dir_all(&target_path.join("folder1/"));
+    make_dir_all(&target_path.join("folder1/").join("folder2/"));
+    make_dir_all(&target_path);
 
-    make_dir_all(&env);
-    make_dir_all(&env.join("folder1/"));
-    make_dir_all(&env.join("folder1/").join("folder2/"));
-    make_dir_all(&env2);
-
-    let mut file = fs::File::create(env.join("test_file1")).unwrap();
+    let mut file = fs::File::create(target_path.join("test_file1")).unwrap();
     file.write_all("FILE_CONTENT1".as_bytes());
-    let mut file = fs::File::create(env.join("folder1/").join("test_file2")).unwrap();
+    let mut file = fs::File::create(target_path.join("folder1/").join("test_file2")).unwrap();
     file.write_all("FILE_CONTENT2".as_bytes());
-    let mut file =
-        fs::File::create(env.join("folder1/").join("folder2/").join("test_file3")).unwrap();
+    let mut file = fs::File::create(
+        target_path
+            .join("folder1/")
+            .join("folder2/")
+            .join("test_file3"),
+    )
+    .unwrap();
     file.write_all("FILE_CONTENT3".as_bytes());
-    (env, env2)
+    (target_path, store_path)
 }
 #[cfg(test)]
 #[allow(unused_must_use)]
-fn test_teardown() {
+fn test_teardown() -> (PathBuf, PathBuf) {
     let path = PathBuf::from("/home/zenkazio/Projects/bloi/TestEnv");
-    delete_all(&path.join("env1/"));
-    delete_all(&path.join("env2/"));
+    let env1 = path.join("target/");
+    let env2 = path.join("store/");
+    delete_all(&env1);
+    delete_all(&env2);
+    (env1, env2)
 }
 
 #[cfg(test)]
@@ -392,15 +401,16 @@ fn test_teardown() {
 #[allow(unused_must_use)]
 fn test_lib_store_routine() {
     let (target_path, store_path) = test_setup();
-    store_routine(&target_path, &store_path);
+    store_routine(&target_path, &store_path).unwrap();
     test_teardown();
 }
 
 #[cfg(test)]
-//#[test]
+#[test]
 #[allow(unused_must_use)]
 fn test_lib_unstore_routine() {
     let (target_path, store_path) = test_setup();
     store_routine(&target_path, &store_path);
-    //unstore_routine(&target_path, &store_path);
+    unstore_routine(&target_path, &store_path);
+    test_teardown();
 }
