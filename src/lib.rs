@@ -74,16 +74,16 @@ enum EqChoice {
 pub fn store_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()> {
     println!("Storing: {:?}", target_path);
     let mut user_choice = UserChoice::NoChoice;
-    work_on_entry(target_path, store_path, &mut user_choice)?;
+    let path_to_store = store_path.join(absolute_to_relative(target_path));
+    work_on_entry(target_path, &path_to_store, &mut user_choice)?;
     Ok(())
 }
 
 fn work_on_entry(
     target_path: &PathBuf,
-    store_path: &PathBuf,
+    path_to_store: &PathBuf,
     user_choice: &mut UserChoice,
 ) -> Result<()> {
-    let path_to_store = store_path.join(absolute_to_relative(target_path));
     match eqalize(
         target_path,
         &path_to_store,
@@ -336,37 +336,71 @@ fn get_child_suffixes(path: &PathBuf) -> Result<Vec<PathBuf>> {
 }
 
 pub fn unstore_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()> {
+    println!("Unstoring: {:?}", target_path);
     let mut user_choice = UserChoice::NoChoice;
-    eqalize(store_path, target_path, &EqChoice::Copy, &mut user_choice)?;
-    delete_all(store_path)?;
+    let path_to_store = store_path.join(absolute_to_relative(target_path));
+    eqalize(
+        target_path,
+        &path_to_store,
+        &EqChoice::Copy,
+        &mut user_choice,
+    )?;
+    //delete_all(store_path)?;
     Ok(())
 }
 
 fn delete_all(path: &PathBuf) -> Result<()> {
-    fs::remove_dir_all(path).map_err(Error::Io)?;
+    fs::remove_dir_all(path)?;
     Ok(())
 }
 
-// fn equalize_handler(res: Result<()>) -> Result<()> {
-//     match res {
-//         Ok(_) => Ok(()),
-//         Err(e) => match e {
-//             Error::EqSymLinkWithoutSource => {
-//                 eprintln!("this is a hard Problem where you user has to intervene");
-//                 return Err(e);
-//             }
-//             x => {
-//                 eprintln!();
-//                 return Ok(());
-//             }
-//         },
-//     }
-// }
+#[cfg(test)]
+#[allow(unused_must_use)]
+fn test_setup() -> (PathBuf, PathBuf) {
+    test_teardown();
 
-// fn check_symlink(src: &PathBuf, dst: &PathBuf) -> Result<()> {
-//     let target = fs::read_link(dst).map_err(Error::Io)?;
-//     if target == src.to_path_buf() {
-//         Ok(())
-//     } else {
-//     }
-// }
+    use std::io::Write;
+
+    let path = PathBuf::from("/home/zenkazio/Projects/bloi/TestEnv");
+    let env = path.join("env1/");
+    let env2 = path.join("env2/");
+
+    make_dir_all(&env);
+    make_dir_all(&env.join("folder1/"));
+    make_dir_all(&env.join("folder1/").join("folder2/"));
+    make_dir_all(&env2);
+
+    let mut file = fs::File::create(env.join("test_file1")).unwrap();
+    file.write_all("FILE_CONTENT1".as_bytes());
+    let mut file = fs::File::create(env.join("folder1/").join("test_file2")).unwrap();
+    file.write_all("FILE_CONTENT2".as_bytes());
+    let mut file =
+        fs::File::create(env.join("folder1/").join("folder2/").join("test_file3")).unwrap();
+    file.write_all("FILE_CONTENT3".as_bytes());
+    (env, env2)
+}
+#[cfg(test)]
+#[allow(unused_must_use)]
+fn test_teardown() {
+    let path = PathBuf::from("/home/zenkazio/Projects/bloi/TestEnv");
+    delete_all(&path.join("env1/"));
+    delete_all(&path.join("env2/"));
+}
+
+#[cfg(test)]
+#[test]
+#[allow(unused_must_use)]
+fn test_lib_store_routine() {
+    let (target_path, store_path) = test_setup();
+    store_routine(&target_path, &store_path);
+    test_teardown();
+}
+
+#[cfg(test)]
+//#[test]
+#[allow(unused_must_use)]
+fn test_lib_unstore_routine() {
+    let (target_path, store_path) = test_setup();
+    store_routine(&target_path, &store_path);
+    //unstore_routine(&target_path, &store_path);
+}
