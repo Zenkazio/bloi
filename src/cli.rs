@@ -50,10 +50,6 @@ pub fn build_cli() -> Command {
             Command::new("store")
                 .about("Copy managed files to storage and replace originals with symlinks"),
         )
-        .subcommand(
-            Command::new("git")
-                .about("Toggle (on/off) git integration (needs remote repo at the moment)"),
-        )
 }
 
 fn validate_path(s: &str) -> Result<PathBuf, String> {

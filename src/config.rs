@@ -8,13 +8,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     adds: HashSet<PathBuf>,
-    use_git: bool,
 }
 impl Default for Config {
     fn default() -> Self {
         Self {
             adds: HashSet::new(),
-            use_git: false,
         }
     }
 }
@@ -47,12 +45,6 @@ impl Config {
     }
     pub fn change_adds(&mut self) -> &mut HashSet<PathBuf> {
         &mut self.adds
-    }
-    pub fn get_use_git(&self) -> &bool {
-        &self.use_git
-    }
-    pub fn switch_git(&mut self) {
-        self.use_git = !self.use_git
     }
 }
 

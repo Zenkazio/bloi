@@ -3,19 +3,13 @@ use std::path::PathBuf;
 
 use crate::cli::*;
 use crate::config::*;
-use crate::git::*;
 use bloi::*;
 
 mod cli;
 mod config;
-mod git;
 
 fn main() -> Result<()> {
     let mut config = Config::load_config()?;
-
-    if *config.get_use_git() {
-        git_init(&get_default_store_path()?)?;
-    }
 
     match build_cli().get_matches().subcommand() {
         Some(("add", sub_m)) => {
@@ -54,10 +48,6 @@ fn main() -> Result<()> {
         Some(("change-store-dir", _)) => {
             todo!("currently not possible");
         }
-        Some(("git", _)) => {
-            config.switch_git();
-            config.save()?;
-        }
         Some(("list", _)) => {
             println!("Currently managed files and directories:");
             // If list is empty
@@ -68,12 +58,10 @@ fn main() -> Result<()> {
             config.list_adds();
         }
         Some(("store", _)) => {
-            pre_store(&config)?;
             config = Config::load_config()?;
             println!("Starting storage operation for all managed files...");
             store(&config)?;
             println!("Storage completed successfully. All files are now symlinked.");
-            post_store(&config)?;
         }
         _ => {}
     }
@@ -83,23 +71,6 @@ fn main() -> Result<()> {
 fn store(config: &Config) -> Result<()> {
     for target_path in config.get_adds() {
         store_routine(target_path, &get_default_store_path()?)?;
-    }
-    Ok(())
-}
-
-fn pre_store(config: &Config) -> Result<()> {
-    if *config.get_use_git() {
-        git_detect_potential_conflict(&get_default_store_path()?)?;
-        git_pull(&get_default_store_path()?)?;
-    }
-    Ok(())
-}
-
-fn post_store(config: &Config) -> Result<()> {
-    if *config.get_use_git() {
-        git_add_all(&get_default_store_path()?)?;
-        git_commit_with_date(&get_default_store_path()?)?;
-        git_push(&get_default_store_path()?)?;
     }
     Ok(())
 }
