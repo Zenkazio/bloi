@@ -339,12 +339,12 @@ pub fn unstore_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()
     println!("Unstoring: {:?}", target_path);
     let mut user_choice = UserChoice::NoChoice;
     let path_to_store = store_path.join(absolute_to_relative(target_path));
-    eqalize(
-        target_path,
-        &path_to_store,
-        &EqChoice::Copy,
-        &mut user_choice,
-    )?;
+    // eqalize(
+    //     target_path,
+    //     &path_to_store,
+    //     &EqChoice::Copy,
+    //     &mut user_choice,
+    // )?;
     eqalize(
         &path_to_store,
         target_path,
