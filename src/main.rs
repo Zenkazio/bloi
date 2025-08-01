@@ -34,7 +34,11 @@ fn main() -> Result<()> {
             // unstore_routine(pos - 1, &get_default_store_path()?)?;
             // println!("Original content has been restored");
         }
-        Commands::ChangeStoreDir { store_path } => println!("Change store dir: {:?}", store_path),
+        Commands::ChangeStoreDir { store_path } => {
+            println!("Change store dir: {:?}", store_path);
+            config.store_dir = store_path;
+            config.save()?;
+        }
         Commands::List => {
             println!("Currently managed files and directories:");
             // If list is empty

@@ -18,16 +18,19 @@ pub enum Commands {
     /// Add a file or directory to be managed by bloi
     Add {
         #[arg(
-            help = "Path to the file/directory you want to manage (will be stored as absolute path)",
-            value_parser = validate_path
+            help = "Path to the file/directory you want to manage",
+            value_parser = validate_path_no_exist
         )]
         target_path: PathBuf,
+        #[arg(
+            value_parser = validate_path_no_exist
+        )]
         path_in_store: PathBuf,
     },
     /// Stop managing a file or directory and restore original content
     Remove {
         #[arg(
-            help = "The file or directory path to be removed from the store (absolute path stored)",
+            help = "the position in list to remove",
             value_parser = validate_path_no_exist
         )]
         pos: usize,
@@ -48,14 +51,14 @@ pub enum Commands {
     Git,
 }
 
-fn validate_path(s: &str) -> Result<PathBuf, String> {
-    let path = PathBuf::from(s);
-    if path.exists() {
-        Ok(path)
-    } else {
-        Err("path doesn't exist".into())
-    }
-}
+// fn validate_path(s: &str) -> Result<PathBuf, String> {
+//     let path = PathBuf::from(s);
+//     if path.exists() {
+//         Ok(path)
+//     } else {
+//         Err("path doesn't exist".into())
+//     }
+// }
 
 fn validate_path_no_exist(s: &str) -> Result<PathBuf, String> {
     Ok(PathBuf::from(s))

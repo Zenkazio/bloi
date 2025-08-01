@@ -1,7 +1,7 @@
 use bloi::*;
 use std::{fs, io::Write, path::PathBuf};
 
-use dirs::home_dir;
+use dirs::{config_dir, home_dir};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -14,11 +14,11 @@ pub struct Config {
 impl Config {
     pub fn load_config() -> Result<Config> {
         if !get_full_config_file_path()?.is_file() {
-            fs::create_dir_all(get_default_store_path()?)?;
+            make_dir_all_file(&get_full_config_file_path()?)?;
             let config = Config {
                 files: Vec::new(),
                 use_git: false,
-                store_dir: PathBuf::from(""),
+                store_dir: get_default_store_path()?,
             };
             config.save()?;
             return Ok(config);
@@ -36,7 +36,9 @@ impl Config {
     pub fn list_files(&self) {
         for (u, (target, store)) in self.files.iter().enumerate() {
             let pos = u + 1;
-            println!("{pos}: {target:?} <- {store:?}");
+            let target_mod = self.store_dir.join(target);
+            let store_mode = self.store_dir.join(store);
+            println!("{pos}: {target_mod:?} <-> {store_mode:?}");
         }
         println!();
     }
@@ -52,7 +54,11 @@ pub fn get_default_store_path() -> Result<PathBuf> {
     }
     Err(Error::HomeDirNotFound)
 }
-/// /home/$USER/.store/config.json
+
+/// /home/$USER/.config/bloi/config.json
 fn get_full_config_file_path() -> Result<PathBuf> {
-    Ok(get_default_store_path()?.join("config.json"))
+    if let Some(config_dir) = config_dir() {
+        return Ok(config_dir.join("bloi/config.json"));
+    }
+    Err(Error::ConfigDirNotFound)
 }

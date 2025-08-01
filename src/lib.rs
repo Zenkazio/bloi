@@ -15,6 +15,8 @@ pub enum Error {
     SerdeJson(#[from] serde_json::Error),
     #[error("HomeDirNotFound: Home dir could not be found")]
     HomeDirNotFound,
+    #[error("ConfigDirNotFound: Config dir could not be found")]
+    ConfigDirNotFound,
     #[error(
         "GitPotentialConflict: Found a potential git conflict - merge must be performed by user"
     )]
@@ -289,7 +291,7 @@ fn delete_file(path: &PathBuf) -> Result<()> {
 fn make_dir_all(path: &PathBuf) -> Result<()> {
     Ok(fs::create_dir_all(path)?)
 }
-fn make_dir_all_file(path: &PathBuf) -> Result<()> {
+pub fn make_dir_all_file(path: &PathBuf) -> Result<()> {
     let parent = match path.parent() {
         Some(s) => s.to_path_buf(),
         None => return Err(Error::NoParent),
