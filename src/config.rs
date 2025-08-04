@@ -7,25 +7,34 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub store_dir: PathBuf,
-    pub files: Vec<(PathBuf, PathBuf)>,
+    pub files: Vec<PathBuf>,
     pub use_git: bool,
 }
 
 impl Config {
     pub fn load_config() -> Result<Config> {
         if !get_full_config_file_path()?.is_file() {
-            make_dir_all_file(&get_full_config_file_path()?)?;
-            let config = Config {
-                files: Vec::new(),
-                use_git: false,
-                store_dir: get_default_store_path()?,
-            };
-            config.save()?;
-            return Ok(config);
+            let backup_path =
+                get_default_store_path()?.join(absolute_to_relative(&get_full_config_file_path()?));
+            if !backup_path.is_file() {
+                make_dir_all_file(&get_full_config_file_path()?)?;
+                let config = Config {
+                    files: vec![get_full_config_file_path()?],
+                    use_git: false,
+                    store_dir: get_default_store_path()?,
+                };
+                config.save()?;
+                Ok(config)
+            } else {
+                let json = fs::read_to_string(backup_path)?;
+                let config = serde_json::from_str(&json)?;
+                Ok(config)
+            }
+        } else {
+            let json = fs::read_to_string(get_full_config_file_path()?)?;
+            let config = serde_json::from_str(&json)?;
+            Ok(config)
         }
-        let json = fs::read_to_string(get_full_config_file_path()?)?;
-        let config = serde_json::from_str(&json)?;
-        Ok(config)
     }
     pub fn save(&self) -> Result<()> {
         let json = serde_json::to_string_pretty(&self)?;
@@ -34,11 +43,10 @@ impl Config {
         Ok(())
     }
     pub fn list_files(&self) {
-        for (u, (target, store)) in self.files.iter().enumerate() {
+        for (u, target) in self.files.iter().enumerate() {
             let pos = u + 1;
             let target_mod = self.store_dir.join(target);
-            let store_mode = self.store_dir.join(store);
-            println!("{pos}: {target_mod:?} <-> {store_mode:?}");
+            println!("{pos}: {target_mod:?}");
         }
         println!();
     }

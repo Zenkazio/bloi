@@ -19,13 +19,9 @@ pub enum Commands {
     Add {
         #[arg(
             help = "Path to the file/directory you want to manage",
-            value_parser = validate_path_no_exist
+            value_parser = validate_path
         )]
         target_path: PathBuf,
-        #[arg(
-            value_parser = validate_path_no_exist
-        )]
-        path_in_store: PathBuf,
     },
     /// Stop managing a file or directory and restore original content
     Remove {
@@ -51,14 +47,14 @@ pub enum Commands {
     Git,
 }
 
-// fn validate_path(s: &str) -> Result<PathBuf, String> {
-//     let path = PathBuf::from(s);
-//     if path.exists() {
-//         Ok(path)
-//     } else {
-//         Err("path doesn't exist".into())
-//     }
-// }
+fn validate_path(s: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(s);
+    if path.exists() {
+        Ok(path)
+    } else {
+        Err("path doesn't exist".into())
+    }
+}
 
 fn validate_path_no_exist(s: &str) -> Result<PathBuf, String> {
     Ok(PathBuf::from(s))

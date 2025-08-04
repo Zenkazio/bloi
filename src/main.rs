@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::cli::*;
 use crate::config::*;
 use crate::git::*;
@@ -16,18 +18,17 @@ fn main() -> Result<()> {
     }
 
     match Cli::parse().command {
-        Commands::Add {
-            target_path,
-            path_in_store,
-        } => {
-            println!("Added {:?} to managed files", &target_path);
-            config.files.push((target_path, path_in_store));
+        Commands::Add { target_path } => {
+            let current_dir = env::current_dir()?;
+            let temp_path = current_dir.join(target_path);
+            println!("Added {:?} to managed files", &temp_path);
+            config.files.push(temp_path);
             config.save()?;
             println!("It will be included in the next store operation");
             config.list_files();
         }
         Commands::Remove { pos } => {
-            let (t, _) = config.files.remove(pos - 1);
+            let t = config.files.remove(pos - 1);
             config.save()?;
             println!("Removed {:?} from managed files", t);
             config.list_files();
@@ -51,6 +52,7 @@ fn main() -> Result<()> {
         Commands::Store => {
             pre_store(&config)?;
             config = Config::load_config()?;
+
             println!("Starting storage operation for all managed files...");
             store(&config)?;
             println!("Storage completed successfully. All files are now symlinked.");
@@ -61,14 +63,12 @@ fn main() -> Result<()> {
             config.save()?;
         }
     }
-    //         let current_dir = env::current_dir().map_err(Error::Io)?;
-
     Ok(())
 }
 
 fn store(config: &Config) -> Result<()> {
-    for (target, path_in_store) in &config.files {
-        store_routine(target, &get_default_store_path()?)?;
+    for target in &config.files {
+        store_routine(target, &config.store_dir)?;
     }
     Ok(())
 }
