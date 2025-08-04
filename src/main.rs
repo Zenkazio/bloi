@@ -1,9 +1,9 @@
 use std::env;
-use std::path::PathBuf;
 
 use crate::cli::*;
 use crate::config::*;
 use bloi::*;
+use clap::Parser;
 
 mod cli;
 mod config;
@@ -11,66 +11,78 @@ mod config;
 fn main() -> Result<()> {
     let mut config = Config::load_config()?;
 
-    match build_cli().get_matches().subcommand() {
-        Some(("add", sub_m)) => {
-            let path = match sub_m.get_one::<PathBuf>("path") {
-                Some(s) => s,
-                None => {
-                    return Err(Error::UnconventionalClapArgMissing("path".to_string()));
-                }
-            };
-            let current_dir = env::current_dir().map_err(Error::Io)?;
-            config.change_adds().insert(current_dir.join(path));
+    if config.use_git {
+        git_init(&get_default_store_path()?)?;
+    }
+
+    match Cli::parse().command {
+        Commands::Add { target_path } => {
+            let current_dir = env::current_dir()?;
+            let temp_path = current_dir.join(target_path);
+            println!("Added {:?} to managed files", &temp_path);
+            config.files.push(temp_path);
             config.save()?;
-            println!("Added {:?} to managed files", path);
             println!("It will be included in the next store operation");
-            config.list_adds();
+            config.list_files();
         }
-        Some(("remove", sub_m)) => {
-            let path = match sub_m.get_one::<PathBuf>("path") {
-                Some(s) => s,
-                None => {
-                    return Err(Error::UnconventionalClapArgMissing("path".to_string()));
-                }
-            };
-            let current_dir = env::current_dir().map_err(Error::Io)?;
-            let target_path = current_dir.join(path);
-            if config.change_adds().remove(&target_path) {
-                config.save()?;
-                println!("Removed {:?} from managed files", target_path);
-                config.list_adds();
-                unstore_routine(&target_path, &get_default_store_path()?)?;
-                println!("Original content has been restored");
-            } else {
-                println!("{:?} was not found in the config", target_path);
-            }
+        Commands::Remove { pos } => {
+            let t = config.files.remove(pos - 1);
+            config.save()?;
+            println!("Removed {:?} from managed files", t);
+            config.list_files();
+            // unstore_routine(pos - 1, &get_default_store_path()?)?;
+            // println!("Original content has been restored");
         }
-        Some(("change-store-dir", _)) => {
-            todo!("currently not possible");
+        Commands::ChangeStoreDir { store_path } => {
+            println!("Change store dir: {:?}", store_path);
+            config.store_dir = store_path;
+            config.save()?;
         }
-        Some(("list", _)) => {
+        Commands::List => {
             println!("Currently managed files and directories:");
             // If list is empty
-            if config.get_adds().is_empty() {
+            if config.files.is_empty() {
                 println!("  No files are currently being managed.");
-                println!("  Use 'bloi add <path>' to start managing files.");
+                println!("  Use 'bloi add' to start managing files.");
             }
-            config.list_adds();
+            config.list_files();
         }
-        Some(("store", _)) => {
+        Commands::Store => {
+            pre_store(&config)?;
             config = Config::load_config()?;
+
             println!("Starting storage operation for all managed files...");
             store(&config)?;
             println!("Storage completed successfully. All files are now symlinked.");
         }
-        _ => {}
+        Commands::Git => {
+            config.switch_git();
+            config.save()?;
+        }
     }
     Ok(())
 }
 
 fn store(config: &Config) -> Result<()> {
-    for target_path in config.get_adds() {
-        store_routine(target_path, &get_default_store_path()?)?;
+    for target in &config.files {
+        store_routine(target, &config.store_dir)?;
+    }
+    Ok(())
+}
+
+fn pre_store(config: &Config) -> Result<()> {
+    if config.use_git {
+        git_detect_potential_conflict(&get_default_store_path()?)?;
+        git_pull(&get_default_store_path()?)?;
+    }
+    Ok(())
+}
+
+fn post_store(config: &Config) -> Result<()> {
+    if config.use_git {
+        git_add_all(&get_default_store_path()?)?;
+        git_commit_with_date(&get_default_store_path()?)?;
+        git_push(&get_default_store_path()?)?;
     }
     Ok(())
 }
