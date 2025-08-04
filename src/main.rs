@@ -1,12 +1,13 @@
-use std::env;
-
 use crate::cli::*;
 use crate::config::*;
+use crate::git::*;
 use bloi::*;
 use clap::Parser;
+use std::env;
 
 mod cli;
 mod config;
+mod git;
 
 fn main() -> Result<()> {
     let mut config = Config::load_config()?;
@@ -54,6 +55,8 @@ fn main() -> Result<()> {
             println!("Starting storage operation for all managed files...");
             store(&config)?;
             println!("Storage completed successfully. All files are now symlinked.");
+
+            post_store(&config)?;
         }
         Commands::Git => {
             config.switch_git();
