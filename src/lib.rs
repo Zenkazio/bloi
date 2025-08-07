@@ -15,10 +15,6 @@ pub enum Error {
     SerdeJson(#[from] serde_json::Error),
     #[error("HomeDirNotFound: Home dir could not be found")]
     HomeDirNotFound,
-    #[error(
-        "GitPotentialConflict: Found a potential git conflict - merge must be performed by user"
-    )]
-    GitPotentialConflict,
     #[error("UnconventionalClapArgMissing: Parameter is missing: {0}")]
     UnconventionalClapArgMissing(String),
     #[error("PathNotClassified: Path could not be classified: {0}")]
