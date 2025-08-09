@@ -25,10 +25,7 @@ pub enum Commands {
     },
     /// Stop managing a file or directory and restore original content
     Remove {
-        #[arg(
-            help = "the position in list to remove",
-            value_parser = validate_path_no_exist
-        )]
+        #[arg(help = "the position in list to remove")]
         pos: usize,
     },
     /// Change the directory where files are stored (default: ~/.store)
