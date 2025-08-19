@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     fmt,
-    fs::{self, create_dir_all, remove_dir, remove_dir_all, remove_file},
+    fs::{self, create_dir_all, remove_dir_all, remove_file},
     io::stdin,
     os::unix::fs::symlink,
     path::{PathBuf, StripPrefixError},
