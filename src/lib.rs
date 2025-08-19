@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     fmt,
-    fs::{self, create_dir_all, remove_dir_all, remove_file},
+    fs::{self, create_dir_all, remove_dir, remove_dir_all, remove_file},
     io::stdin,
     os::unix::fs::symlink,
     path::{PathBuf, StripPrefixError},
@@ -37,8 +37,8 @@ pub enum Error {
     EqSymLinkSymLink(PathBuf, PathBuf),
     #[error("EqNoExistNoExist: very strange no exist\n{0}\n{1}")]
     EqNoExistNoExist(PathBuf, PathBuf),
-    #[error("EqFileSymLinkDir: PathTypeError\n{0}\n{1}")]
-    EqFileSymLinkDir(PathBuf, PathBuf),
+    #[error("EqFileDir: PathTypeError\n{0}\n{1}")]
+    EqFileDir(PathBuf, PathBuf),
     #[error("NoPossibleUserChoice: Invalid selection: {0}")]
     NoPossibleUserChoice(String),
     #[error("NoParent: Directory has no parent")]
@@ -55,7 +55,7 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug)]
 enum PathType {
-    SymLink(PathBuf),
+    SymLink(PathBuf, PathBuf),
     NoExist(PathBuf),
     File(PathBuf),
     Dir(PathBuf),
@@ -69,99 +69,62 @@ enum UserChoice {
     NoChoice,
 }
 
-enum EqChoice {
-    SymLink,
-    Copy,
-}
-
 pub fn store_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()> {
     println!("Storing: {:?}", target_path);
-    let mut user_choice = UserChoice::NoChoice;
-    let path_to_store = store_path.join(absolute_to_relative(target_path));
+    let path_to_store = &store_path.join(absolute_to_relative(target_path));
 
-    let path_to_store: &PathBuf = &path_to_store;
-    let user_choice: &mut UserChoice = &mut user_choice;
-
-    match eqalize(target_path, &path_to_store, &EqChoice::SymLink, user_choice) {
-        Ok(_) => {}
-        Err(e) => match e {
-            Error::EqSymLinkWithoutSource(_)
-            | Error::EqNoExistDirError(_, _)
-            | Error::EqSymLinkSymLink(_, _)
-            | Error::EqFileSymLinkDir(_, _) => {
-                println!("{e}")
-            }
-            e => return Err(e),
-        },
-    };
+    if !check_link(&target_path, &path_to_store)? {
+        println!("Must equalize!");
+        match eqalize(target_path, path_to_store, &mut UserChoice::NoChoice) {
+            Ok(_) => {}
+            Err(e) => match e {
+                Error::EqSymLinkWithoutSource(_)
+                | Error::EqNoExistDirError(_, _)
+                | Error::EqSymLinkSymLink(_, _)
+                | Error::EqFileDir(_, _) => {
+                    println!("{e}")
+                }
+                e => return Err(e),
+            },
+        };
+        remove_special(target_path)?;
+        symlink(path_to_store, target_path)?;
+    }
     Ok(())
 }
 
-fn eqalize(
-    path1: &PathBuf,
-    path2: &PathBuf,
-    eq_choice: &EqChoice,
-    user_choice: &mut UserChoice,
-) -> Result<()> {
-    let path_type1 = classify_path(path1.to_path_buf())?;
-    let path_type2 = classify_path(path2.to_path_buf())?;
+fn eqalize(path1: &PathBuf, path2: &PathBuf, user_choice: &mut UserChoice) -> Result<()> {
+    let path_type1 = classify_path(path1)?;
+    let path_type2 = classify_path(path2)?;
 
     match (path_type1, path_type2) {
-        (PathType::File(p1), PathType::NoExist(p2)) => {
+        (PathType::File(p1), PathType::NoExist(p2))
+        | (PathType::NoExist(p2), PathType::File(p1)) => {
             make_dir_all_file(&p2)?;
-            match eq_choice {
-                EqChoice::Copy => copy(&p1, &p2)?,
-                EqChoice::SymLink => {
-                    copy(&p1, &p2)?;
-                    remove_file(&p1)?;
-                    symlink(p2, p1)?;
-                }
-            }
+            copy(&p1, &p2)?
         }
-        (PathType::NoExist(p1), PathType::File(p2)) => {
-            make_dir_all_file(&p1)?;
-            match eq_choice {
-                EqChoice::Copy => copy(&p2, &p1)?,
-                EqChoice::SymLink => symlink(p2, p1)?,
-            }
-        }
-        (PathType::NoExist(_), PathType::SymLink(p))
-        | (PathType::SymLink(p), PathType::NoExist(_)) => {
+        (PathType::NoExist(_), PathType::SymLink(p, _))
+        | (PathType::SymLink(p, _), PathType::NoExist(_)) => {
             return Err(Error::EqSymLinkWithoutSource(p.to_path_buf()));
         }
-        (PathType::File(p1), PathType::SymLink(p2)) => match eq_choice {
-            EqChoice::Copy => {
-                remove_file(&p2)?;
-                copy(&p1, &p2)?;
-            }
-            EqChoice::SymLink => {
-                remove_file(&p2)?;
-                copy(&p1, &p2)?;
-                remove_file(&p1)?;
-                symlink(p2, p1)?;
-            }
-        },
-        (PathType::SymLink(p1), PathType::File(p2)) => match eq_choice {
-            EqChoice::Copy => {
-                remove_file(&p1)?;
-                copy(&p2, &p1)?;
-            }
-            EqChoice::SymLink => {
-                remove_file(&p1)?;
-                symlink(p2, p1)?;
-            }
-        },
-        (PathType::SymLink(p1), PathType::SymLink(p2)) => {
+        (PathType::File(p1), PathType::SymLink(p2, _))
+        | (PathType::SymLink(p2, _), PathType::File(p1)) => {
+            remove_file(&p2)?;
+            copy(&p1, &p2)?;
+        }
+        (PathType::SymLink(p1, _), PathType::SymLink(p2, _)) => {
             return Err(Error::EqSymLinkSymLink(p1, p2));
         }
         (PathType::NoExist(p1), PathType::NoExist(p2)) => {
             return Err(Error::EqNoExistNoExist(p1, p2));
         }
-        (PathType::File(p1), PathType::Dir(p2))
-        | (PathType::Dir(p1), PathType::File(p2))
-        | (PathType::SymLink(p1), PathType::Dir(p2))
-        | (PathType::Dir(p1), PathType::SymLink(p2)) => {
-            return Err(Error::EqFileSymLinkDir(p1, p2));
+        (PathType::File(p1), PathType::Dir(p2)) | (PathType::Dir(p1), PathType::File(p2)) => {
+            return Err(Error::EqFileDir(p1, p2));
+        }
+        (PathType::SymLink(p1, _), PathType::Dir(_))
+        | (PathType::Dir(_), PathType::SymLink(p1, _)) => {
+            remove_file(&p1)?;
+            eqalize(path1, path2, user_choice)?;
         }
         (PathType::File(p1), PathType::File(p2)) => {
             match *user_choice {
@@ -174,11 +137,11 @@ fn eqalize(
             match *user_choice {
                 UserChoice::TakeStore | UserChoice::TakeStoreAll => {
                     remove_file(&p1)?;
-                    eqalize(&p1, &p2, eq_choice, user_choice)?;
+                    eqalize(path1, path2, user_choice)?;
                 }
                 UserChoice::TakeTarget | UserChoice::TakeTargetAll => {
                     remove_file(&p2)?;
-                    eqalize(&p1, &p2, eq_choice, user_choice)?;
+                    eqalize(path1, path2, user_choice)?;
                 }
                 _ => {}
             }
@@ -186,30 +149,52 @@ fn eqalize(
         (PathType::Dir(p1), PathType::Dir(p2))
         | (PathType::NoExist(p1), PathType::Dir(p2))
         | (PathType::Dir(p1), PathType::NoExist(p2)) => {
-            equalize_dir(&p1, &p2, eq_choice, user_choice)?
+            create_dir_all(&p1)?;
+            create_dir_all(&p2)?;
+            let children1 = get_child_suffixes(&p1)?;
+            let children2 = get_child_suffixes(&p2)?;
+            let children: HashSet<_> = children1.union(&children2).collect();
+            for child in children {
+                eqalize(&p1.join(child), &p2.join(child), user_choice)?;
+            }
         }
     }
+
     Ok(())
 }
 
-fn classify_path(path: PathBuf) -> Result<PathType> {
+fn classify_path(path: &PathBuf) -> Result<PathType> {
     if path.is_symlink() {
-        Ok(PathType::SymLink(path))
+        let link_target = fs::read_link(&path)?;
+        Ok(PathType::SymLink(path.to_path_buf(), link_target))
     } else {
         if path.exists() {
             if path.is_dir() {
-                Ok(PathType::Dir(path))
+                Ok(PathType::Dir(path.to_path_buf()))
             } else if path.is_file() {
-                Ok(PathType::File(path))
+                Ok(PathType::File(path.to_path_buf()))
             } else {
-                Err(Error::PathNotClassified(path))
+                Err(Error::PathNotClassified(path.to_path_buf()))
             }
         } else {
-            Ok(PathType::NoExist(path))
+            Ok(PathType::NoExist(path.to_path_buf()))
         }
     }
 }
+fn check_link(link: &PathBuf, original: &PathBuf) -> Result<bool> {
+    let link_type = classify_path(link)?;
 
+    match link_type {
+        PathType::SymLink(_, link1) => {
+            if &link1 != original {
+                Ok(false)
+            } else {
+                Ok(true)
+            }
+        }
+        _ => Ok(false),
+    }
+}
 pub fn absolute_to_relative(absolute_path: &PathBuf) -> PathBuf {
     if !absolute_path.is_absolute() {
         return absolute_path.to_path_buf();
@@ -217,7 +202,14 @@ pub fn absolute_to_relative(absolute_path: &PathBuf) -> PathBuf {
     //Error has been handeled
     absolute_path.strip_prefix("/").unwrap().to_path_buf()
 }
-
+fn remove_special(path: &PathBuf) -> Result<()> {
+    let path_type = classify_path(path)?;
+    match path_type {
+        PathType::File(_) | PathType::SymLink(_, _) => Ok(remove_file(path)?),
+        PathType::Dir(_) => Ok(remove_dir_all(path)?),
+        PathType::NoExist(_) => Ok(remove_dir_all(path)?),
+    }
+}
 ///a wrapper for fs::copy changes u64 to ()
 fn copy(src: &PathBuf, dst: &PathBuf) -> Result<()> {
     fs::copy(src, dst)?;
@@ -270,39 +262,12 @@ fn get_child_suffixes(path: &PathBuf) -> Result<HashSet<PathBuf>> {
     Ok(vec)
 }
 
-fn equalize_dir(
-    path1: &PathBuf,
-    path2: &PathBuf,
-    eq_choice: &EqChoice,
-    user_choice: &mut UserChoice,
-) -> Result<()> {
-    create_dir_all(path1)?;
-    create_dir_all(path2)?;
-    let children1 = get_child_suffixes(path1)?;
-    let children2 = get_child_suffixes(path2)?;
-    let children: HashSet<_> = children1.union(&children2).collect();
-    for child in children {
-        eqalize(
-            &path1.join(child),
-            &path2.join(child),
-            eq_choice,
-            user_choice,
-        )?;
-    }
-    Ok(())
-}
-
 pub fn unstore_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()> {
     println!("Unstoring: {:?}", target_path);
     let mut user_choice = UserChoice::NoChoice;
     let path_to_store = store_path.join(absolute_to_relative(target_path));
 
-    eqalize(
-        &path_to_store,
-        target_path,
-        &EqChoice::Copy,
-        &mut user_choice,
-    )?;
+    eqalize(&path_to_store, target_path, &mut user_choice)?;
     remove_dir_all(&path_to_store)?;
     Ok(())
 }
@@ -370,20 +335,20 @@ fn test_classify_path() {
     let (target_path, _) = test_setup();
     let p1 = target_path.join("test_file1");
     let s1 = target_path.join("sym_test_file1");
-    dbg!(classify_path(target_path.clone()));
-    dbg!(classify_path(target_path.join("test_file1")));
+    dbg!(classify_path(&target_path.clone()));
+    dbg!(classify_path(&target_path.join("test_file1")));
     symlink(
         target_path.join("test_file1"),
         target_path.join("sym_test_file1"),
     );
-    dbg!(classify_path(target_path.join("sym_test_file1")));
-    dbg!(classify_path(target_path.join("test_file4")));
+    dbg!(classify_path(&target_path.join("sym_test_file1")));
+    dbg!(classify_path(&target_path.join("test_file4")));
     // test_teardown();
     //
     remove_file(target_path.join("test_file1"));
     println!("____________________________");
-    dbg!(classify_path(p1));
-    dbg!(classify_path(s1.clone()));
+    dbg!(classify_path(&p1));
+    dbg!(classify_path(&s1.clone()));
     dbg!(fs::read_link(s1));
     test_teardown();
 }

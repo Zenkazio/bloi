@@ -26,6 +26,7 @@ impl Config {
                 config.save()?;
                 Ok(config)
             } else {
+                println!("Load backup config");
                 let json = fs::read_to_string(backup_path)?;
                 let config = serde_json::from_str(&json)?;
                 Ok(config)
