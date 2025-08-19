@@ -78,15 +78,10 @@ pub fn store_routine(target_path: &PathBuf, store_path: &PathBuf) -> Result<()> 
     println!("Storing: {:?}", target_path);
     let mut user_choice = UserChoice::NoChoice;
     let path_to_store = store_path.join(absolute_to_relative(target_path));
-    work_on_entry(target_path, &path_to_store, &mut user_choice)?;
-    Ok(())
-}
 
-fn work_on_entry(
-    target_path: &PathBuf,
-    path_to_store: &PathBuf,
-    user_choice: &mut UserChoice,
-) -> Result<()> {
+    let path_to_store: &PathBuf = &path_to_store;
+    let user_choice: &mut UserChoice = &mut user_choice;
+
     match eqalize(target_path, &path_to_store, &EqChoice::SymLink, user_choice) {
         Ok(_) => {}
         Err(e) => match e {
